@@ -1,21 +1,31 @@
-# app.py
-from flask import Flask, request, jsonify, render_template
-import joblib
-import pandas as pd
+from flask import Flask, request, jsonify
+from train_model import ExcelSocialMediaPredictor
 
 app = Flask(__name__)
-modelo = joblib.load('model/modelo.pkl')
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Cargar modelo pre-entrenado
+predictor = ExcelSocialMediaPredictor()
+predictor.load_trained_model('mi_modelo_redes_sociales.pkl')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    datos = request.get_json()
-    df = pd.DataFrame([datos])
-    pred = modelo.predict(df)
-    return jsonify({'resultado': int(pred[0])})
+    try:
+        # Recibir datos del formulario
+        user_data = request.json
+        
+        # Hacer predicción
+        predictions = predictor.predict_new_user(user_data)
+        
+        return jsonify({
+            'success': True,
+            'predictions': predictions
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 if __name__ == '__main__':
     app.run(debug=True)
