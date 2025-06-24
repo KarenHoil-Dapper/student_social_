@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import joblib
 import pandas as pd
 
@@ -8,7 +8,7 @@ modelo = joblib.load('model/modelo.pkl')
 
 @app.route('/')
 def home():
-    return "API de Predicción de Compras"
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
