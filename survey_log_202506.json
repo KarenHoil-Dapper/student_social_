@@ -1,0 +1,47 @@
+[
+  {
+    "timestamp": "2025-06-24T14:14:13.434248",
+    "responses": {
+      "age": 12.0,
+      "gender": 2.0,
+      "education_level": 4.0,
+      "avg_daily_usage_hours": 5.0,
+      "sleep_hours_per_night": 6.0,
+      "physical_activity_hours": 8.0,
+      "study_work_hours": 4.0,
+      "platforms_used": 2.0,
+      "posting_frequency": 3.0,
+      "scrolling_before_bed": 5.0,
+      "notification_frequency": 1.0,
+      "anxiety_level": 10.0,
+      "mood_changes": 1.0,
+      "social_comparison": 3.0,
+      "fomo_level": 3.0,
+      "concentration_issues": 3.0,
+      "procrastination": 4.0,
+      "productivity_impact": 4.0,
+      "conflicts_over_social_media": 1.0,
+      "face_to_face_preference": 5.0,
+      "online_vs_offline_friends": 1.0,
+      "survey_date": "2025-06-24 14:14:11",
+      "survey_id": "web_survey_20250624_141411"
+    },
+    "predictions": {
+      "cluster": 2,
+      "mental_health_score": 6.321839241085957,
+      "affects_academic_performance": 1,
+      "academic_impact_probability": 0.7082716760775938
+    },
+    "recommendations": [
+      "⚠️ Tu uso de redes sociales es considerable. Intenta reducir gradualmente el tiempo.",
+      "😴 Necesitas más horas de sueño. Intenta dormir al menos 7-8 horas por noche.",
+      "📱 Evita usar redes sociales antes de dormir para mejorar la calidad del sueño.",
+      "😊 Tu salud mental parece estar en buen estado. ¡Sigue así!",
+      "📚 Las redes sociales podrían estar afectando tu rendimiento académico. Considera usar apps de bloqueo durante estudio.",
+      "😰 Tu nivel de ansiedad es alto. Practica técnicas de relajación y considera reducir el uso de redes sociales."
+    ]
+  },
+  {
+    "timestamp": "2025-06-24T14:23:34.739577",
+    "prepared_data": {
+      "Student_ID": 

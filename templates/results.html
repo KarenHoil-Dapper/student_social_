@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-chart-pie"></i>
+            Tus Resultados
+        </h2>
+        
+        <!-- Resumen -->
+        <div class="card result-card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user"></i> Resumen Personal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Uso diario:</strong> 
+                        {{ "%.1f"|format(results.features.get('avg_daily_usage_hours', 0)) }} horas
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Horas de sueño:</strong> 
+                        {{ "%.1f"|format(results.features.get('sleep_hours_per_night', 0)) }} horas
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Nivel de ansiedad:</strong> 
+                        {{ "%.0f"|format(results.features.get('anxiety_level', 0)) }}/10
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Predicciones -->
+        <div class="card result-card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-brain"></i> Análisis IA</h5>
+            </div>
+            <div class="card-body">
+                {% if results.predictions.get('mental_health_score') %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Puntuación de Salud Mental</h6>
+                        <div class="progress">
+                            {% set score = results.predictions.mental_health_score %}
+                            <div class="progress-bar 
+                                {% if score >= 7 %}bg-success
+                                {% elif score >= 5 %}bg-warning
+                                {% else %}bg-danger{% endif %}" 
+                                style="width: {{ (score/10)*100 }}%">
+                                {{ "%.1f"|format(score) }}/10
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Impacto Académico</h6>
+                        {% if results.predictions.get('affects_academic_performance') == 1 %}
+                        <span class="badge bg-warning">Sí afecta</span>
+                        {% else %}
+                        <span class="badge bg-success">No afecta</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if results.predictions.get('cluster') is defined %}
+                <p><strong>Perfil:</strong> Grupo {{ results.predictions.cluster }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recomendaciones -->
+        {% if results.recommendations %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones</h5>
+            </div>
+            <div class="card-body">
+                {% for recommendation in results.recommendations %}
+                <div class="recommendation p-3 mb-2 rounded">
+                    {{ recommendation }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="text-center">
+            <a href="{{ url_for('survey') }}" class="btn btn-primary">
+                <i class="fas fa-redo"></i> Nueva Evaluación
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Inicio
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

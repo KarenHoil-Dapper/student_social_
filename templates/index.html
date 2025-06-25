@@ -1,11 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h1>Welcome to My Page</h1>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+        <div class="bg-gradient text-white rounded p-5 mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-brain"></i>
+                Evaluación de Salud Mental
+            </h1>
+            <p class="lead">
+                Sistema inteligente para evaluar el impacto de las redes sociales 
+                en tu salud mental y rendimiento académico
+            </p>
+            <a href="{{ url_for('survey') }}" class="btn btn-light btn-lg">
+                <i class="fas fa-clipboard-list"></i> Iniciar Evaluación
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card card-hover h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Análisis Inteligente</h5>
+                <p class="card-text">
+                    Utilizamos algoritmos de machine learning para analizar 
+                    tu relación con las redes sociales
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card card-hover h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-lightbulb fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Recomendaciones</h5>
+                <p class="card-text">
+                    Recibe consejos personalizados para mejorar tu bienestar 
+                    digital y salud mental
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card card-hover h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Privacidad</h5>
+                <p class="card-text">
+                    Tus datos son anónimos y se utilizan solo para 
+                    mejorar el sistema de predicción
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

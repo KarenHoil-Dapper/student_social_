@@ -1,458 +1,424 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.cluster import KMeans
+import os
 import joblib
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.preprocessing import StandardScaler, LabelEncoder, PolynomialFeatures
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge, Lasso
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier, GradientBoostingClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import accuracy_score, classification_report, mean_squared_error, r2_score
+from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 import warnings
 warnings.filterwarnings('ignore')
 
-class ExcelSocialMediaPredictor:
-    """
-    Predictor entrenado específicamente con tu archivo Excel
-    """
-    def __init__(self):
-        self.models = {}
-        self.scaler = None
-        self.feature_columns = []
-        self.target_columns = ['Mental_Health_Score', 'Addicted_Score', 'Conflicts_Over_Social_Media']
-        self.country_columns = []
-        self.platform_columns = []
-        self.relationship_columns = []
-        self.kmeans_model = None
+# ==========================================
+# CARGA Y PREPROCESAMIENTO AVANZADO DE DATOS
+# ==========================================
+
+def load_and_preprocess_data(file_path):
+    """Carga y preprocesa los datos con ingeniería de características avanzada"""
+    try:
+        df = pd.read_excel(file_path)
+        print(f"📊 Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
+        print(f"📋 Columnas disponibles: {list(df.columns)}")
         
-    def load_excel_data(self, excel_path, sheet_name=None):
-        """
-        Carga el archivo Excel con dummies ya creados
-        """
-        excel_path='Social_bueno.xlsx'
-        try:
-            # Leer el archivo Excel
-            if sheet_name:
-                df = pd.read_excel(excel_path, sheet_name=sheet_name)
-            else:
-                df = pd.read_excel(excel_path)
-            
-            print(f"✅ Archivo cargado exitosamente: {excel_path}")
-            print(f"📊 Dimensiones: {df.shape}")
-            print(f"📋 Columnas encontradas: {len(df.columns)}")
-            
-            # Mostrar información básica
-            print("\n🔍 Primeras columnas:")
-            for i, col in enumerate(df.columns[:10]):
-                print(f"  {i+1}. {col}")
-            if len(df.columns) > 10:
-                print(f"  ... y {len(df.columns)-10} más")
-            
-            return df
-            
-        except FileNotFoundError:
-            print(f"❌ Error: No se encontró el archivo {excel_path}")
-            return None
-        except Exception as e:
-            print(f"❌ Error al cargar el archivo: {str(e)}")
-            return None
+    except Exception as e:
+        print(f"❌ Error cargando el archivo: {e}")
+        raise
     
-    def analyze_data_structure(self, df):
-        """
-        Analiza la estructura de datos y identifica columnas dummy
-        """
-        print("\n🔎 ANÁLISIS DE ESTRUCTURA DE DATOS")
-        print("="*50)
-        
-        # Identificar columnas por tipo
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
-        
-        print(f"📊 Columnas numéricas: {len(numeric_cols)}")
-        print(f"📋 Columnas categóricas: {len(categorical_cols)}")
-        
-        # Identificar columnas dummy por patrones
-        self.country_columns = [col for col in df.columns if 'Country_' in col or 'country_' in col]
-        self.platform_columns = [col for col in df.columns if 'Platform_' in col or 'platform_' in col or 'Most_Used_Platform_' in col]
-        self.relationship_columns = [col for col in df.columns if 'Relationship_' in col or 'relationship_' in col]
-        gender_columns = [col for col in df.columns if 'Gender_' in col or 'gender_' in col]
-        academic_columns = [col for col in df.columns if 'Academic_' in col or 'academic_' in col]
-        
-        print(f"\n🌍 Dummies de países: {len(self.country_columns)}")
-        if self.country_columns:
-            print(f"   Ejemplos: {self.country_columns[:3]}{'...' if len(self.country_columns) > 3 else ''}")
-        
-        print(f"📱 Dummies de plataformas: {len(self.platform_columns)}")
-        if self.platform_columns:
-            print(f"   Ejemplos: {self.platform_columns[:3]}{'...' if len(self.platform_columns) > 3 else ''}")
-        
-        print(f"💕 Dummies de relaciones: {len(self.relationship_columns)}")
-        if self.relationship_columns:
-            print(f"   Ejemplos: {self.relationship_columns}")
-        
-        print(f"👤 Dummies de género: {len(gender_columns)}")
-        if gender_columns:
-            print(f"   Ejemplos: {gender_columns}")
-        
-        print(f"🎓 Dummies académicos: {len(academic_columns)}")
-        if academic_columns:
-            print(f"   Ejemplos: {academic_columns}")
-        
-        # Verificar targets
-        available_targets = [col for col in self.target_columns if col in df.columns]
-        print(f"\n🎯 Variables objetivo disponibles: {available_targets}")
-        
-        return available_targets
+    # Columnas principales requeridas
+    required_cols = ['Avg_Daily_Usage_Hours', 'Sleep_Hours_Per_Night', 'Conflicts_Over_Social_Media']
+    target_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
     
-    def prepare_features_and_targets(self, df):
-        """
-        Prepara las características y variables objetivo
-        """
-        # Excluir columnas que no son features
-        exclude_columns = ['Student_ID', 'ID', 'Index'] + self.target_columns
-        
-        # Seleccionar todas las columnas excepto las excluidas
-        feature_columns = [col for col in df.columns if col not in exclude_columns]
-        
-        # Verificar que las características son numéricas (ya dummificadas)
-        non_numeric = []
-        for col in feature_columns:
-            if df[col].dtype == 'object':
-                print(f"⚠️  Advertencia: {col} no es numérica. Valores únicos: {df[col].unique()[:5]}")
-                non_numeric.append(col)
-        
-        # Remover columnas no numéricas si las hay
-        feature_columns = [col for col in feature_columns if col not in non_numeric]
-        
-        self.feature_columns = feature_columns
-        
-        X = df[feature_columns].copy()
-        y = df[self.target_columns].copy()
-        
-        print(f"\n✅ DATOS PREPARADOS:")
-        print(f"   Features: {len(feature_columns)} columnas")
-        print(f"   Targets: {len(self.target_columns)} variables")
-        print(f"   Muestras: {len(X)} filas")
-        
-        # Verificar valores faltantes
-        missing_features = X.isnull().sum().sum()
-        missing_targets = y.isnull().sum().sum()
-        
-        if missing_features > 0:
-            print(f"⚠️  Valores faltantes en features: {missing_features}")
-            X = X.fillna(0)  # Rellenar con 0 para dummies
-        
-        if missing_targets > 0:
-            print(f"⚠️  Valores faltantes en targets: {missing_targets}")
-            y = y.fillna(y.median())  # Rellenar con mediana para targets
-        
-        return X, y
+    # Verificar que las columnas requeridas existan
+    missing_cols = [col for col in required_cols + target_cols if col not in df.columns]
+    if missing_cols:
+        print(f"⚠️ Columnas faltantes: {missing_cols}")
+        print("Utilizando columnas disponibles...")
     
-    def train_models(self, df, test_size=0.2):
-        """
-        Entrena los modelos con validación cruzada
-        """
-        print("\n🚀 INICIANDO ENTRENAMIENTO")
-        print("="*50)
+    # Identificar características numéricas disponibles
+    potential_features = []
+    for col in df.columns:
+        if df[col].dtype in ['int64', 'float64', 'float32', 'int32'] and col not in target_cols:
+            potential_features.append(col)
+    
+    print(f"🔍 Características numéricas encontradas: {potential_features}")
+    
+    # Usar características disponibles (combinando requeridas y encontradas)
+    available_required = [col for col in required_cols if col in df.columns]
+    extended_features = list(set(available_required + potential_features))
+    
+    print(f"✅ Características a utilizar: {extended_features}")
+    
+    # Limpiar datos - solo incluir columnas que existen
+    columns_to_check = []
+    for col in extended_features + target_cols:
+        if col in df.columns:
+            columns_to_check.append(col)
+    
+    df_clean = df.dropna(subset=columns_to_check)
+    print(f"🧹 Datos después de limpiar: {df_clean.shape[0]} filas")
+    
+    # INGENIERÍA DE CARACTERÍSTICAS
+    # 1. Crear características derivadas (solo si las columnas base existen)
+    if 'Avg_Daily_Usage_Hours' in df_clean.columns and 'Sleep_Hours_Per_Night' in df_clean.columns:
+        print("🔧 Creando características derivadas...")
+        df_clean['usage_sleep_ratio'] = df_clean['Avg_Daily_Usage_Hours'] / (df_clean['Sleep_Hours_Per_Night'] + 0.1)
+        df_clean['total_daily_activity'] = df_clean['Avg_Daily_Usage_Hours'] + df_clean['Sleep_Hours_Per_Night']
+        df_clean['sleep_deficit'] = np.where(df_clean['Sleep_Hours_Per_Night'] < 8, 
+                                           8 - df_clean['Sleep_Hours_Per_Night'], 0)
         
-        # Preparar datos
-        X, y = self.prepare_features_and_targets(df)
+        # Agregar nuevas características a la lista
+        extended_features.extend(['usage_sleep_ratio', 'total_daily_activity', 'sleep_deficit'])
+    
+    # 2. Crear categorías de uso (solo si la columna existe)
+    if 'Avg_Daily_Usage_Hours' in df_clean.columns:
+        print("📊 Creando categorías de uso...")
+        df_clean['usage_category'] = pd.cut(df_clean['Avg_Daily_Usage_Hours'], 
+                                          bins=[0, 2, 4, 6, float('inf')], 
+                                          labels=[0, 1, 2, 3])  # Usar números en lugar de strings
         
-        # Split de datos
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42
-        )
-        
-        # Escalar características
-        self.scaler = StandardScaler()
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
-        
-        results = {}
-        
-        # Entrenar modelo para cada target
-        for target in self.target_columns:
-            if target in y.columns:
-                print(f"\n🎯 Entrenando modelo para: {target}")
-                
-                # Configurar modelo con mejores hiperparámetros
-                model = RandomForestRegressor(
-                    n_estimators=200,
-                    max_depth=15,
-                    min_samples_split=5,
-                    min_samples_leaf=2,
-                    random_state=42,
-                    n_jobs=-1
-                )
-                
-                # Entrenar modelo
-                model.fit(X_train_scaled, y_train[target])
-                
-                # Predicciones
-                y_pred_train = model.predict(X_train_scaled)
-                y_pred_test = model.predict(X_test_scaled)
-                
-                # Métricas
-                train_mse = mean_squared_error(y_train[target], y_pred_train)
-                test_mse = mean_squared_error(y_test[target], y_pred_test)
-                train_r2 = r2_score(y_train[target], y_pred_train)
-                test_r2 = r2_score(y_test[target], y_pred_test)
-                
-                # Validación cruzada
-                cv_scores = cross_val_score(model, X_train_scaled, y_train[target], 
-                                          cv=5, scoring='neg_mean_squared_error')
-                cv_mse = -cv_scores.mean()
-                
-                # Guardar modelo y resultados
-                self.models[target] = model
-                results[target] = {
-                    'train_mse': train_mse,
-                    'test_mse': test_mse,
-                    'train_r2': train_r2,
-                    'test_r2': test_r2,
-                    'cv_mse': cv_mse,
-                    'feature_importance': dict(zip(self.feature_columns, model.feature_importances_))
-                }
-                
-                print(f"   📊 Train MSE: {train_mse:.4f}")
-                print(f"   📊 Test MSE:  {test_mse:.4f}")
-                print(f"   📊 Train R²:  {train_r2:.4f}")
-                print(f"   📊 Test R²:   {test_r2:.4f}")
-                print(f"   📊 CV MSE:    {cv_mse:.4f}")
-        
-        # Clustering de usuarios
-        print(f"\n🔍 Realizando clustering de usuarios...")
-        self.kmeans_model = KMeans(n_clusters=4, random_state=42)
-        clusters = self.kmeans_model.fit_predict(X_train_scaled)
-        results['clusters'] = {
-            'n_clusters': 4,
-            'cluster_distribution': np.bincount(clusters)
+        # Convertir a numérico
+        df_clean['usage_category_encoded'] = df_clean['usage_category'].astype(float)
+        extended_features.append('usage_category_encoded')
+    
+    # 3. Obtener todas las columnas numéricas finales
+    numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
+    numeric_cols = [col for col in numeric_cols if col not in target_cols]
+    
+    # Actualizar lista de características finales
+    final_features = [col for col in numeric_cols if col in df_clean.columns]
+    
+    print(f"🎯 Características finales: {len(final_features)} características")
+    print(f"   {final_features}")
+    
+    return df_clean, final_features
+
+# ==========================================
+# SELECCIÓN INTELIGENTE DE CARACTERÍSTICAS
+# ==========================================
+
+def select_best_features(X, y, task_type='regression', k=10):
+    """Selecciona las mejores características basándose en scores estadísticos"""
+    if task_type == 'regression':
+        selector = SelectKBest(score_func=f_regression, k=min(k, X.shape[1]))
+    else:
+        selector = SelectKBest(score_func=f_classif, k=min(k, X.shape[1]))
+    
+    X_selected = selector.fit_transform(X, y)
+    selected_features = X.columns[selector.get_support()].tolist()
+    
+    print(f"🎯 Características seleccionadas para {task_type}: {selected_features}")
+    return X_selected, selected_features, selector
+
+# ==========================================
+# CLUSTERING MEJORADO
+# ==========================================
+
+def improved_clustering(X, feature_names):
+    """Clustering mejorado con optimización de hiperparámetros"""
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Encontrar número óptimo de clusters usando método del codo
+    inertias = []
+    K_range = range(2, min(8, len(X)//2))
+    
+    for k in K_range:
+        kmeans_temp = KMeans(n_clusters=k, random_state=42, n_init=10)
+        kmeans_temp.fit(X_scaled)
+        inertias.append(kmeans_temp.inertia_)
+    
+    # Seleccionar k óptimo (simplificado)
+    optimal_k = 3  # Puedes implementar método del codo más sofisticado
+    
+    # Modelo final
+    kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+    clusters = kmeans.fit_predict(X_scaled)
+    
+    # Analizar clusters
+    cluster_analysis = {}
+    for i in range(optimal_k):
+        cluster_mask = clusters == i
+        cluster_data = X[cluster_mask]
+        cluster_analysis[f'Cluster_{i}'] = {
+            'size': np.sum(cluster_mask),
+            'characteristics': {
+                feature: {
+                    'mean': cluster_data[feature].mean(),
+                    'std': cluster_data[feature].std()
+                } for feature in feature_names
+            }
         }
-        
-        print(f"   📊 Distribución de clusters: {np.bincount(clusters)}")
-        
-        return results
     
-    def predict_new_user(self, user_data):
-        """
-        Predice para un nuevo usuario usando el formato original
-        """
-        if not self.models:
-            raise ValueError("❌ No hay modelos entrenados. Ejecuta train_models() primero.")
-        
-        # Convertir datos del usuario al formato con dummies
-        user_features = self.convert_user_to_dummies(user_data)
-        
-        # Crear DataFrame con las mismas columnas que el entrenamiento
-        user_df = pd.DataFrame([user_features])
-        
-        # Asegurar que tiene todas las columnas necesarias
-        for col in self.feature_columns:
-            if col not in user_df.columns:
-                user_df[col] = 0
-        
-        # Reordenar columnas
-        user_df = user_df[self.feature_columns]
-        
-        # Escalar
-        user_scaled = self.scaler.transform(user_df)
-        
-        # Predicciones
-        predictions = {}
-        for target, model in self.models.items():
-            pred = model.predict(user_scaled)[0]
-            predictions[target] = round(float(pred), 2)
-        
-        # Cluster
-        if self.kmeans_model:
-            cluster = self.kmeans_model.predict(user_scaled)[0]
-            predictions['user_cluster'] = int(cluster)
-        
-        return predictions
+    print("🔍 Análisis de clusters:")
+    for cluster_name, analysis in cluster_analysis.items():
+        print(f"{cluster_name}: {analysis['size']} muestras")
     
-    def convert_user_to_dummies(self, user_data):
-        """
-        Convierte datos del usuario al formato dummy
-        """
-        dummy_data = {}
-        
-        # Copiar valores numéricos directamente
-        numeric_fields = ['Age', 'Avg_Daily_Usage_Hours', 'Sleep_Hours_Per_Night']
-        for field in numeric_fields:
-            if field in user_data:
-                dummy_data[field] = user_data[field]
-        
-        # Convertir género
-        if 'Gender' in user_data:
-            for col in self.feature_columns:
-                if col.startswith('Gender_'):
-                    gender_value = col.replace('Gender_', '')
-                    dummy_data[col] = 1 if user_data['Gender'] == gender_value else 0
-        
-        # Convertir país
-        if 'Country' in user_data:
-            for col in self.country_columns:
-                country_value = col.replace('Country_', '')
-                dummy_data[col] = 1 if user_data['Country'] == country_value else 0
-        
-        # Convertir plataforma
-        if 'Most_Used_Platform' in user_data:
-            for col in self.platform_columns:
-                platform_value = col.replace('Most_Used_Platform_', '').replace('Platform_', '')
-                dummy_data[col] = 1 if user_data['Most_Used_Platform'] == platform_value else 0
-        
-        # Convertir relación
-        if 'Relationship_Status' in user_data:
-            for col in self.relationship_columns:
-                relation_value = col.replace('Relationship_Status_', '').replace('Relationship_', '')
-                dummy_data[col] = 1 if user_data['Relationship_Status'] == relation_value else 0
-        
-        # Convertir nivel académico
-        if 'Academic_Level' in user_data:
-            for col in self.feature_columns:
-                if col.startswith('Academic_'):
-                    academic_value = col.replace('Academic_Level_', '').replace('Academic_', '')
-                    dummy_data[col] = 1 if user_data['Academic_Level'] == academic_value else 0
-        
-        # Convertir afecta rendimiento académico
-        if 'Affects_Academic_Performance' in user_data:
-            for col in self.feature_columns:
-                if 'Affects_Academic_Performance' in col:
-                    if 'Yes' in col:
-                        dummy_data[col] = 1 if user_data['Affects_Academic_Performance'] == 'Yes' else 0
-                    elif 'No' in col:
-                        dummy_data[col] = 1 if user_data['Affects_Academic_Performance'] == 'No' else 0
-        
-        return dummy_data
+    return kmeans, scaler, clusters, cluster_analysis
+
+# ==========================================
+# MODELOS DE REGRESIÓN AVANZADOS
+# ==========================================
+
+def build_advanced_regression_models(X, y, feature_names):
+    """Construye múltiples modelos de regresión con optimización"""
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    def get_feature_importance_report(self):
-        """
-        Genera reporte de importancia de características
-        """
-        if not self.models:
-            print("❌ No hay modelos entrenados.")
+    # Modelos a probar
+    models = {
+        'Linear': LinearRegression(),
+        'Ridge': Ridge(),
+        'Lasso': Lasso(),
+        'Polynomial': None  # Se configurará después
+    }
+    
+    # Crear características polinomiales
+    poly_features = PolynomialFeatures(degree=2, include_bias=False)
+    X_train_poly = poly_features.fit_transform(X_train)
+    X_test_poly = poly_features.transform(X_test)
+    
+    models['Polynomial'] = LinearRegression()
+    
+    best_model = None
+    best_score = float('-inf')
+    results = {}
+    
+    for name, model in models.items():
+        if name == 'Polynomial':
+            model.fit(X_train_poly, y_train)
+            y_pred = model.predict(X_test_poly)
+            score = r2_score(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+        else:
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            score = r2_score(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+        
+        results[name] = {'r2_score': score, 'mse': mse}
+        
+        if score > best_score:
+            best_score = score
+            best_model = (name, model, poly_features if name == 'Polynomial' else None)
+    
+    print("📈 Resultados de regresión:")
+    for name, metrics in results.items():
+        print(f"{name}: R² = {metrics['r2_score']:.4f}, MSE = {metrics['mse']:.4f}")
+    
+    return best_model, results
+
+# ==========================================
+# MODELOS DE CLASIFICACIÓN AVANZADOS
+# ==========================================
+
+def build_advanced_classification_models(X, y):
+    """Construye modelos de clasificación con optimización de hiperparámetros"""
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Modelos base mejorados
+    models = {
+        'LogisticRegression': LogisticRegression(max_iter=1000, random_state=42),
+        'DecisionTree': DecisionTreeClassifier(random_state=42),
+        'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),
+        'GradientBoosting': GradientBoostingClassifier(random_state=42)
+    }
+    
+    # Optimización de hiperparámetros para RandomForest
+    rf_params = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [3, 5, 7, None],
+        'min_samples_split': [2, 5, 10]
+    }
+    
+    rf_grid = GridSearchCV(RandomForestClassifier(random_state=42), rf_params, cv=3, scoring='accuracy')
+    rf_grid.fit(X_train, y_train)
+    models['RandomForest_Optimized'] = rf_grid.best_estimator_
+    
+    # Ensemble final
+    ensemble = VotingClassifier(
+        estimators=[
+            ('lr', models['LogisticRegression']),
+            ('rf', models['RandomForest_Optimized']),
+            ('gb', models['GradientBoosting'])
+        ],
+        voting='soft'
+    )
+    
+    # Evaluar modelos
+    results = {}
+    best_model = None
+    best_score = 0
+    
+    for name, model in models.items():
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        results[name] = accuracy
+        
+        if accuracy > best_score:
+            best_score = accuracy
+            best_model = (name, model)
+    
+    # Evaluar ensemble
+    ensemble.fit(X_train, y_train)
+    y_pred_ensemble = ensemble.predict(X_test)
+    ensemble_accuracy = accuracy_score(y_test, y_pred_ensemble)
+    results['Ensemble'] = ensemble_accuracy
+    
+    if ensemble_accuracy > best_score:
+        best_model = ('Ensemble', ensemble)
+    
+    print("🎯 Resultados de clasificación:")
+    for name, accuracy in results.items():
+        print(f"{name}: Precisión = {accuracy:.4f}")
+    
+    return best_model, results
+
+# ==========================================
+# FUNCIÓN PRINCIPAL
+# ==========================================
+
+def main():
+    print("🚀 Iniciando entrenamiento de modelos mejorados...")
+    
+    try:
+        # Cargar y preprocesar datos
+        df, extended_features = load_and_preprocess_data("Social_Bueno.xlsx")
+        
+        if len(extended_features) == 0:
+            print("❌ No se encontraron características válidas para entrenar")
             return
         
-        print("\n📊 IMPORTANCIA DE CARACTERÍSTICAS")
-        print("="*60)
+        # Verificar datos objetivo
+        target_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
+        available_targets = [col for col in target_cols if col in df.columns]
         
-        for target, model in self.models.items():
-            print(f"\n🎯 {target}:")
+        if len(available_targets) == 0:
+            print("❌ No se encontraron columnas objetivo válidas")
+            return
+        
+        print(f"🎯 Columnas objetivo disponibles: {available_targets}")
+        
+        # Preparar datos
+        X = df[extended_features]
+        print(f"📊 Matriz de características: {X.shape}")
+        
+        # Crear directorio de modelos
+        os.makedirs("model_advanced", exist_ok=True)
+        
+        # 1. CLUSTERING MEJORADO
+        print("\n1️⃣ Entrenando modelo de clustering...")
+        kmeans, scaler, clusters, cluster_analysis = improved_clustering(X, extended_features)
+        df['cluster_advanced'] = clusters
+        
+        joblib.dump(kmeans, "model_advanced/kmeans_advanced.pkl")
+        joblib.dump(scaler, "model_advanced/scaler_advanced.pkl")
+        joblib.dump(cluster_analysis, "model_advanced/cluster_analysis.pkl")
+        print("✅ Clustering completado")
+        
+        # 2. REGRESIÓN AVANZADA (si existe Mental_Health_Score)
+        reg_trained = False
+        if 'Mental_Health_Score' in df.columns:
+            print("\n2️⃣ Entrenando modelos de regresión...")
+            y_reg = df['Mental_Health_Score']
             
-            # Obtener importancias
-            importances = model.feature_importances_
-            feature_importance = list(zip(self.feature_columns, importances))
-            feature_importance.sort(key=lambda x: x[1], reverse=True)
+            # Verificar que no hay valores nulos en y_reg
+            if y_reg.isnull().any():
+                print("⚠️ Limpiando valores nulos en Mental_Health_Score...")
+                valid_indices = ~y_reg.isnull()
+                X_reg = X[valid_indices]
+                y_reg = y_reg[valid_indices]
+            else:
+                X_reg = X
             
-            # Top 10 características más importantes
-            print("   Top 10 características más importantes:")
-            for i, (feature, importance) in enumerate(feature_importance[:10]):
-                print(f"   {i+1:2d}. {feature:<30} {importance:.4f}")
-    
-    def save_trained_model(self, filepath_prefix='trained_social_media_model'):
-        """
-        Guarda el modelo entrenado
-        """
-        model_data = {
-            'models': self.models,
-            'scaler': self.scaler,
-            'feature_columns': self.feature_columns,
-            'target_columns': self.target_columns,
-            'country_columns': self.country_columns,
-            'platform_columns': self.platform_columns,
-            'relationship_columns': self.relationship_columns,
-            'kmeans_model': self.kmeans_model
+            if len(y_reg) > 0:
+                X_reg_selected, reg_features, reg_selector = select_best_features(X_reg, y_reg, 'regression')
+                best_reg_model, reg_results = build_advanced_regression_models(
+                    pd.DataFrame(X_reg_selected, columns=reg_features), y_reg, reg_features
+                )
+                
+                joblib.dump(best_reg_model, "model_advanced/regression_best.pkl")
+                joblib.dump(reg_selector, "model_advanced/regression_selector.pkl")
+                joblib.dump(reg_features, "model_advanced/regression_features.pkl")
+                reg_trained = True
+                print("✅ Regresión completada")
+        else:
+            print("⚠️ Saltando regresión - No se encontró 'Mental_Health_Score'")
+            reg_features = []
+            reg_results = {}
+            best_reg_model = ("None", None)
+        
+        # 3. CLASIFICACIÓN AVANZADA (si existe Affects_Academic_Performance)
+        clf_trained = False
+        if 'Affects_Academic_Performance' in df.columns:
+            print("\n3️⃣ Entrenando modelos de clasificación...")
+            y_clf = df['Affects_Academic_Performance']
+            
+            # Verificar que no hay valores nulos en y_clf
+            if y_clf.isnull().any():
+                print("⚠️ Limpiando valores nulos en Affects_Academic_Performance...")
+                valid_indices = ~y_clf.isnull()
+                X_clf = X[valid_indices]
+                y_clf = y_clf[valid_indices]
+            else:
+                X_clf = X
+            
+            if len(y_clf) > 0:
+                X_clf_selected, clf_features, clf_selector = select_best_features(X_clf, y_clf, 'classification')
+                best_clf_model, clf_results = build_advanced_classification_models(
+                    pd.DataFrame(X_clf_selected, columns=clf_features), y_clf
+                )
+                
+                joblib.dump(best_clf_model, "model_advanced/classification_best.pkl")
+                joblib.dump(clf_selector, "model_advanced/classification_selector.pkl")
+                joblib.dump(clf_features, "model_advanced/classification_features.pkl")
+                clf_trained = True
+                print("✅ Clasificación completada")
+        else:
+            print("⚠️ Saltando clasificación - No se encontró 'Affects_Academic_Performance'")
+            clf_features = []
+            clf_results = {}
+            best_clf_model = ("None", None)
+        
+        # Guardar información del modelo
+        model_info = {
+            'extended_features': extended_features,
+            'regression_features': reg_features if reg_trained else [],
+            'classification_features': clf_features if clf_trained else [],
+            'best_regression_model': best_reg_model[0] if reg_trained else "None",
+            'best_classification_model': best_clf_model[0] if clf_trained else "None",
+            'regression_results': reg_results if reg_trained else {},
+            'classification_results': clf_results if clf_trained else {},
+            'cluster_analysis': cluster_analysis,
+            'models_trained': {
+                'clustering': True,
+                'regression': reg_trained,
+                'classification': clf_trained
+            }
         }
         
-        joblib.dump(model_data, f'{filepath_prefix}.pkl')
-        print(f"✅ Modelo guardado como: {filepath_prefix}.pkl")
-    
-    def load_trained_model(self, filepath):
-        """
-        Carga un modelo previamente entrenado
-        """
-        try:
-            model_data = joblib.load(filepath)
-            
-            self.models = model_data['models']
-            self.scaler = model_data['scaler']
-            self.feature_columns = model_data['feature_columns']
-            self.target_columns = model_data['target_columns']
-            self.country_columns = model_data['country_columns']
-            self.platform_columns = model_data['platform_columns']
-            self.relationship_columns = model_data['relationship_columns']
-            self.kmeans_model = model_data['kmeans_model']
-            
-            print(f"✅ Modelo cargado desde: {filepath}")
-            
-        except Exception as e:
-            print(f"❌ Error al cargar modelo: {str(e)}")
+        joblib.dump(model_info, "model_advanced/model_info.pkl")
+        
+        print("\n" + "="*50)
+        print("✅ ENTRENAMIENTO COMPLETADO!")
+        print("="*50)
+        print(f"📁 Archivos guardados en: ./model_advanced/")
+        print(f"🔄 Clustering: ✅ Entrenado")
+        print(f"📈 Regresión: {'✅ Entrenado' if reg_trained else '❌ No entrenado'}")
+        if reg_trained:
+            print(f"   🏆 Mejor modelo: {best_reg_model[0]}")
+        print(f"🎯 Clasificación: {'✅ Entrenado' if clf_trained else '❌ No entrenado'}")
+        if clf_trained:
+            print(f"   🏆 Mejor modelo: {best_clf_model[0]}")
+        
+    except Exception as e:
+        print(f"❌ Error durante el entrenamiento: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
-# Función principal para usar con tu archivo
-def train_with_your_excel(excel_path, sheet_name=None):
-    """
-    Función principal para entrenar con tu archivo Excel
-    """
-    print("🎯 ENTRENADOR DE MODELO CON EXCEL PERSONALIZADO")
-    print("="*60)
-    
-    # Crear predictor
-    predictor = ExcelSocialMediaPredictor()
-    
-    # Cargar datos
-    df = predictor.load_excel_data(excel_path, sheet_name)
-    if df is None:
-        return None
-    
-    # Analizar estructura
-    available_targets = predictor.analyze_data_structure(df)
-    
-    if not available_targets:
-        print("❌ No se encontraron variables objetivo válidas")
-        return None
-    
-    # Entrenar modelos
-    results = predictor.train_models(df)
-    
-    # Mostrar reporte de importancia
-    predictor.get_feature_importance_report()
-    
-    # Guardar modelo
-    predictor.save_trained_model('mi_modelo_redes_sociales')
-    
-    print("\n🎉 ENTRENAMIENTO COMPLETADO")
-    print("="*40)
-    print("✅ Modelos entrenados y guardados")
-    print("✅ Listo para hacer predicciones")
-    
-    return predictor
-
-# Ejemplo de uso
 if __name__ == "__main__":
-    # REEMPLAZA ESTA RUTA CON LA RUTA DE TU ARCHIVO EXCEL
-    excel_file_path = "tu_archivo_redes_sociales.xlsx"
-    
-    # Entrenar con tu archivo
-    predictor = train_with_your_excel(excel_file_path)
-    
-    if predictor:
-        # Ejemplo de predicción
-        nuevo_usuario = {
-            'Age': 20,
-            'Gender': 'Female',
-            'Academic_Level': 'Undergraduate',
-            'Country': 'Mexico',
-            'Avg_Daily_Usage_Hours': 5.3,
-            'Most_Used_Platform': 'Instagram',
-            'Affects_Academic_Performance': 'Yes',
-            'Sleep_Hours_Per_Night': 5.5,
-            'Relationship_Status': 'Single'
-        }
-        
-        try:
-            predicciones = predictor.predict_new_user(nuevo_usuario)
-            print(f"\n🔮 PREDICCIONES PARA NUEVO USUARIO:")
-            for key, value in predicciones.items():
-                print(f"   {key}: {value}")
-        except Exception as e:
-            print(f"❌ Error en predicción: {str(e)}")
+    main()

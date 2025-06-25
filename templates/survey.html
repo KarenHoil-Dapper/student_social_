@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Encuesta - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-clipboard-list"></i>
+            Encuesta de Evaluación
+        </h2>
+        
+        <form method="POST" action="{{ url_for('submit_survey') }}" id="surveyForm">
+            {% for category, category_questions in questions.items() %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ category.replace('_', ' ').title() }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for key, question in category_questions.items() %}
+                    <div class="mb-3">
+                        <label for="{{ key }}" class="form-label">{{ question }}</label>
+                        <input type="number" class="form-control" id="{{ key }}" name="{{ key }}" 
+                               step="0.1" required>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-brain"></i> Obtener Evaluación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('surveyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Mostrar loading
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
+    submitBtn.disabled = true;
+    
+    // Enviar formulario
+    setTimeout(() => {
+        this.submit();
+    }, 1000);
+});
+</script>
+{% endblock %}
