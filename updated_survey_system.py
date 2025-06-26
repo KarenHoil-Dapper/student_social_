@@ -703,6 +703,8 @@ class SocialMediaHealthPredictor:
                 'predictions': predictions,
                 'recommendations': recommendations
             }
+
+            
             
             log_file = f"survey_log_{datetime.now().strftime('%Y%m')}.json"
             
@@ -725,6 +727,8 @@ class SocialMediaHealthPredictor:
             import traceback
             traceback.print_exc()
             return False
+        
+        
     
     def display_results(self, prepared_data, predictions, recommendations):
         """Muestra los resultados al usuario de forma amigable"""
