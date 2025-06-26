@@ -17,17 +17,45 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <strong>Edad:</strong> 
+                        {{ results.prepared_data.get('Age', 'N/A') }} años
+                    </div>
+                    <div class="col-md-3">
                         <strong>Uso diario:</strong> 
-                        {{ "%.1f"|format(results.features.get('avg_daily_usage_hours', 0)) }} horas
+                        {{ "%.1f"|format(results.prepared_data.get('Avg_Daily_Usage_Hours', 0)) }} horas
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <strong>Horas de sueño:</strong> 
-                        {{ "%.1f"|format(results.features.get('sleep_hours_per_night', 0)) }} horas
+                        {{ "%.1f"|format(results.prepared_data.get('Sleep_Hours_Per_Night', 0)) }} horas
                     </div>
-                    <div class="col-md-4">
-                        <strong>Nivel de ansiedad:</strong> 
-                        {{ "%.0f"|format(results.features.get('anxiety_level', 0)) }}/10
+                    <div class="col-md-3">
+                        <strong>Ansiedad:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Anxiety_Level', 0)) }}/10
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Adicción (calculada):</strong> 
+                        <span class="badge 
+                        {% if results.prepared_data.get('Addicted_Score', 0) >= 8 %}bg-danger
+                        {% elif results.prepared_data.get('Addicted_Score', 0) >= 6 %}bg-warning
+                        {% else %}bg-success{% endif %}">
+                        {{ "%.1f"|format(results.prepared_data.get('Addicted_Score', 0)) }}/10
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>FOMO:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('FOMO_Level', 0)) }}/5
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Concentración:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Concentration_Issues', 0)) }}/5
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Actividad física:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Physical_Activity_Hours', 0)) }}h/sem
                     </div>
                 </div>
             </div>
@@ -53,33 +81,78 @@
                                 {{ "%.1f"|format(score) }}/10
                             </div>
                         </div>
+                        {% if score >= 8 %}
+                        <small class="text-success">Excelente salud mental</small>
+                        {% elif score >= 6 %}
+                        <small class="text-warning">Buena salud mental</small>
+                        {% elif score >= 4 %}
+                        <small class="text-warning">Regular - considera mejoras</small>
+                        {% else %}
+                        <small class="text-danger">Preocupante - busca ayuda</small>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <h6>Impacto Académico</h6>
                         {% if results.predictions.get('affects_academic_performance') == 1 %}
-                        <span class="badge bg-warning">Sí afecta</span>
+                        <span class="badge bg-warning fs-6">SÍ afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
                         {% else %}
-                        <span class="badge bg-success">No afecta</span>
+                        <span class="badge bg-success fs-6">NO afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
                         {% endif %}
                     </div>
                 </div>
                 {% endif %}
                 
                 {% if results.predictions.get('cluster') is defined %}
-                <p><strong>Perfil:</strong> Grupo {{ results.predictions.cluster }}</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-users"></i> <strong>Perfil de Usuario:</strong> Grupo {{ results.predictions.cluster }}
+                    <small class="d-block">Basado en patrones de comportamiento similares</small>
+                </div>
                 {% endif %}
+            </div>
+        </div>
+        
+        <!-- Indicadores Detallados -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Indicadores Detallados</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Bienestar Psicológico</h6>
+                        <ul class="list-unstyled">
+                            <li>🔄 Cambios de humor: {{ results.prepared_data.get('Mood_Changes', 0) }}/5</li>
+                            <li>👥 Comparación social: {{ results.prepared_data.get('Social_Comparison', 0) }}/5</li>
+                            <li>📱 Nivel de FOMO: {{ results.prepared_data.get('FOMO_Level', 0) }}/5</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Productividad</h6>
+                        <ul class="list-unstyled">
+                            <li>⏰ Procrastinación: {{ results.prepared_data.get('Procrastination', 0) }}/5</li>
+                            <li>🎯 Concentración: {{ results.prepared_data.get('Concentration_Issues', 0) }}/5</li>
+                            <li>📊 Impacto productividad: {{ results.prepared_data.get('Productivity_Impact', 0) }}/5</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- Recomendaciones -->
         {% if results.recommendations %}
         <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones</h5>
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones Personalizadas</h5>
             </div>
             <div class="card-body">
                 {% for recommendation in results.recommendations %}
-                <div class="recommendation p-3 mb-2 rounded">
+                <div class="recommendation p-3 mb-2 rounded border-start border-warning border-3">
                     {{ recommendation }}
                 </div>
                 {% endfor %}
@@ -88,12 +161,18 @@
         {% endif %}
         
         <div class="text-center">
-            <a href="{{ url_for('survey') }}" class="btn btn-primary">
+            <a href="{{ url_for('survey') }}" class="btn btn-primary btn-lg">
                 <i class="fas fa-redo"></i> Nueva Evaluación
             </a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
                 <i class="fas fa-home"></i> Inicio
             </a>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle"></i>
+            <strong>Nota:</strong> La puntuación de adicción se calcula automáticamente basándose en tus patrones de uso, 
+            frecuencia de publicación, notificaciones, FOMO y otros indicadores.
         </div>
     </div>
 </div>

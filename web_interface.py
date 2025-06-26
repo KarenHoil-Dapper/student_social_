@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json
 import os
 from datetime import datetime
-from survey_prediction_system import SocialMediaHealthPredictor
+from updated_survey_system import SocialMediaHealthPredictor  # Actualizado
 
 app = Flask(__name__)
 app.secret_key = 'social_media_health_predictor_2024'
@@ -38,21 +38,21 @@ def submit_survey():
         responses['survey_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         responses['survey_id'] = f"web_survey_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        # Preparar características
-        features = predictor.prepare_features(responses)
+        # Preparar características usando el nuevo método
+        prepared_data = predictor.prepare_features_for_model(responses)
         
         # Hacer predicciones
-        predictions = predictor.make_predictions(features)
+        predictions = predictor.make_predictions(prepared_data)
         
         # Generar recomendaciones
-        recommendations = predictor.generate_recommendations(features, predictions)
+        recommendations = predictor.generate_recommendations(prepared_data, predictions)
         
         # Guardar datos
-        predictor.save_survey_data(responses, predictions, recommendations)
+        predictor.save_survey_data(prepared_data, predictions, recommendations)
         
         # Preparar resultados para mostrar
         results = {
-            'features': features,
+            'prepared_data': prepared_data,
             'predictions': predictions,
             'recommendations': recommendations,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -69,19 +69,20 @@ def api_predict():
     try:
         data = request.get_json()
         
-        # Preparar características
-        features = predictor.prepare_features(data)
+        # Preparar características usando el nuevo método
+        prepared_data = predictor.prepare_features_for_model(data)
         
         # Hacer predicciones
-        predictions = predictor.make_predictions(features)
+        predictions = predictor.make_predictions(prepared_data)
         
         # Generar recomendaciones
-        recommendations = predictor.generate_recommendations(features, predictions)
+        recommendations = predictor.generate_recommendations(prepared_data, predictions)
         
         return jsonify({
             'success': True,
             'predictions': predictions,
             'recommendations': recommendations,
+            'addiction_score_calculated': prepared_data.get('Addicted_Score'),
             'timestamp': datetime.now().isoformat()
         })
         
@@ -270,31 +271,69 @@ def create_templates():
     <div class="col-lg-8 mx-auto">
         <h2 class="text-center mb-4">
             <i class="fas fa-clipboard-list"></i>
-            Encuesta de Evaluación
+            Encuesta de Evaluación (13 preguntas)
         </h2>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Versión optimizada:</strong> Solo 13 preguntas clave con selecciones fáciles.
+            Tu puntuación de adicción se calculará automáticamente.
+        </div>
         
         <form method="POST" action="{{ url_for('submit_survey') }}" id="surveyForm">
             {% for category, category_questions in questions.items() %}
             <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">{{ category.replace('_', ' ').title() }}</h5>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i>
+                        {{ category.replace('_', ' ').title() }}
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% for key, question in category_questions.items() %}
-                    <div class="mb-3">
-                        <label for="{{ key }}" class="form-label">{{ question }}</label>
-                        <input type="number" class="form-control" id="{{ key }}" name="{{ key }}" 
-                               step="0.1" required>
+                    {% for key, question_data in category_questions.items() %}
+                    <div class="mb-4">
+                        <label for="{{ key }}" class="form-label fw-bold">
+                            {{ question_data.question }}
+                        </label>
+                        
+                        {% if question_data.type == 'select' %}
+                            <select class="form-select form-select-lg" id="{{ key }}" name="{{ key }}" required>
+                                <option value="">-- Selecciona una opción --</option>
+                                {% for option in question_data.options %}
+                                    <option value="{{ option.value }}">{{ option.label }}</option>
+                                {% endfor %}
+                            </select>
+                        {% elif question_data.type == 'number' %}
+                            <input type="number" 
+                                   class="form-control form-control-lg" 
+                                   id="{{ key }}" 
+                                   name="{{ key }}" 
+                                   min="{{ question_data.get('min', 1) }}"
+                                   max="{{ question_data.get('max', 100) }}"
+                                   step="1"
+                                   placeholder="Ingresa un número entre {{ question_data.get('min', 1) }} y {{ question_data.get('max', 100) }}"
+                                   required>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
             </div>
             {% endfor %}
             
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-brain"></i> Obtener Evaluación
+            <div class="text-center mb-4">
+                <button type="submit" class="btn btn-success btn-lg px-5">
+                    <i class="fas fa-brain"></i> Obtener Mi Evaluación Completa
                 </button>
+            </div>
+            
+            <div class="alert alert-secondary">
+                <small>
+                    <i class="fas fa-shield-alt"></i>
+                    <strong>Privacidad:</strong> Tus respuestas son anónimas y se usan solo para mejorar el sistema.
+                    <br>
+                    <i class="fas fa-calculator"></i>
+                    <strong>Adicción:</strong> Se calcula automáticamente basándose en tus patrones de uso.
+                </small>
             </div>
         </form>
     </div>
@@ -306,18 +345,87 @@ def create_templates():
 document.getElementById('surveyForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Validar que todos los campos estén completos
+    const requiredFields = this.querySelectorAll('[required]');
+    let allCompleted = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value) {
+            allCompleted = false;
+            field.classList.add('is-invalid');
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!allCompleted) {
+        alert('Por favor completa todas las preguntas antes de continuar.');
+        return;
+    }
+    
     // Mostrar loading
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando con IA...';
     submitBtn.disabled = true;
     
-    // Enviar formulario
+    // Agregar clase de carga al formulario
+    this.style.opacity = '0.7';
+    
+    // Enviar formulario después de animación
     setTimeout(() => {
         this.submit();
-    }, 1000);
+    }, 1500);
+});
+
+// Mejorar UX con animaciones en selects
+document.querySelectorAll('select').forEach(select => {
+    select.addEventListener('change', function() {
+        this.classList.add('border-success');
+        setTimeout(() => {
+            this.classList.remove('border-success');
+        }, 1000);
+    });
 });
 </script>
+
+<style>
+.form-select-lg, .form-control-lg {
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+}
+
+.card {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+    border: none;
+}
+
+.card-header {
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+</style>
 {% endblock %}'''
     
     # Template resultados
@@ -340,17 +448,45 @@ document.getElementById('surveyForm').addEventListener('submit', function(e) {
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <strong>Edad:</strong> 
+                        {{ results.prepared_data.get('Age', 'N/A') }} años
+                    </div>
+                    <div class="col-md-3">
                         <strong>Uso diario:</strong> 
-                        {{ "%.1f"|format(results.features.get('avg_daily_usage_hours', 0)) }} horas
+                        {{ "%.1f"|format(results.prepared_data.get('Avg_Daily_Usage_Hours', 0)) }} horas
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <strong>Horas de sueño:</strong> 
-                        {{ "%.1f"|format(results.features.get('sleep_hours_per_night', 0)) }} horas
+                        {{ "%.1f"|format(results.prepared_data.get('Sleep_Hours_Per_Night', 0)) }} horas
                     </div>
-                    <div class="col-md-4">
-                        <strong>Nivel de ansiedad:</strong> 
-                        {{ "%.0f"|format(results.features.get('anxiety_level', 0)) }}/10
+                    <div class="col-md-3">
+                        <strong>Ansiedad:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Anxiety_Level', 0)) }}/10
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Adicción (calculada):</strong> 
+                        <span class="badge 
+                        {% if results.prepared_data.get('Addicted_Score', 0) >= 8 %}bg-danger
+                        {% elif results.prepared_data.get('Addicted_Score', 0) >= 6 %}bg-warning
+                        {% else %}bg-success{% endif %}">
+                        {{ "%.1f"|format(results.prepared_data.get('Addicted_Score', 0)) }}/10
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>FOMO:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('FOMO_Level', 0)) }}/5
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Concentración:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Concentration_Issues', 0)) }}/5
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Actividad física:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Physical_Activity_Hours', 0)) }}h/sem
                     </div>
                 </div>
             </div>
@@ -376,33 +512,78 @@ document.getElementById('surveyForm').addEventListener('submit', function(e) {
                                 {{ "%.1f"|format(score) }}/10
                             </div>
                         </div>
+                        {% if score >= 8 %}
+                        <small class="text-success">Excelente salud mental</small>
+                        {% elif score >= 6 %}
+                        <small class="text-warning">Buena salud mental</small>
+                        {% elif score >= 4 %}
+                        <small class="text-warning">Regular - considera mejoras</small>
+                        {% else %}
+                        <small class="text-danger">Preocupante - busca ayuda</small>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <h6>Impacto Académico</h6>
                         {% if results.predictions.get('affects_academic_performance') == 1 %}
-                        <span class="badge bg-warning">Sí afecta</span>
+                        <span class="badge bg-warning fs-6">SÍ afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
                         {% else %}
-                        <span class="badge bg-success">No afecta</span>
+                        <span class="badge bg-success fs-6">NO afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
                         {% endif %}
                     </div>
                 </div>
                 {% endif %}
                 
                 {% if results.predictions.get('cluster') is defined %}
-                <p><strong>Perfil:</strong> Grupo {{ results.predictions.cluster }}</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-users"></i> <strong>Perfil de Usuario:</strong> Grupo {{ results.predictions.cluster }}
+                    <small class="d-block">Basado en patrones de comportamiento similares</small>
+                </div>
                 {% endif %}
+            </div>
+        </div>
+        
+        <!-- Indicadores Detallados -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Indicadores Detallados</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Bienestar Psicológico</h6>
+                        <ul class="list-unstyled">
+                            <li>🔄 Cambios de humor: {{ results.prepared_data.get('Mood_Changes', 0) }}/5</li>
+                            <li>👥 Comparación social: {{ results.prepared_data.get('Social_Comparison', 0) }}/5</li>
+                            <li>📱 Nivel de FOMO: {{ results.prepared_data.get('FOMO_Level', 0) }}/5</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Productividad</h6>
+                        <ul class="list-unstyled">
+                            <li>⏰ Procrastinación: {{ results.prepared_data.get('Procrastination', 0) }}/5</li>
+                            <li>🎯 Concentración: {{ results.prepared_data.get('Concentration_Issues', 0) }}/5</li>
+                            <li>📊 Impacto productividad: {{ results.prepared_data.get('Productivity_Impact', 0) }}/5</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- Recomendaciones -->
         {% if results.recommendations %}
         <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones</h5>
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones Personalizadas</h5>
             </div>
             <div class="card-body">
                 {% for recommendation in results.recommendations %}
-                <div class="recommendation p-3 mb-2 rounded">
+                <div class="recommendation p-3 mb-2 rounded border-start border-warning border-3">
                     {{ recommendation }}
                 </div>
                 {% endfor %}
@@ -411,12 +592,18 @@ document.getElementById('surveyForm').addEventListener('submit', function(e) {
         {% endif %}
         
         <div class="text-center">
-            <a href="{{ url_for('survey') }}" class="btn btn-primary">
+            <a href="{{ url_for('survey') }}" class="btn btn-primary btn-lg">
                 <i class="fas fa-redo"></i> Nueva Evaluación
             </a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
                 <i class="fas fa-home"></i> Inicio
             </a>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle"></i>
+            <strong>Nota:</strong> La puntuación de adicción se calcula automáticamente basándose en tus patrones de uso, 
+            frecuencia de publicación, notificaciones, FOMO y otros indicadores.
         </div>
     </div>
 </div>
