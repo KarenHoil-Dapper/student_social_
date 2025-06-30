@@ -7,7 +7,7 @@
     <div class="col-lg-10 mx-auto">
         <h2 class="text-center mb-4">
             <i class="fas fa-chart-pie"></i>
-            Tus Resultados
+            Tus Resultados con Análisis Visual
         </h2>
         
         <!-- Resumen -->
@@ -52,10 +52,6 @@
                     <div class="col-md-3">
                         <strong>Concentración:</strong> 
                         {{ "%.0f"|format(results.prepared_data.get('Concentration_Issues', 0)) }}/5
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Actividad física:</strong> 
-                        {{ "%.0f"|format(results.prepared_data.get('Physical_Activity_Hours', 0)) }}h/sem
                     </div>
                 </div>
             </div>
@@ -108,39 +104,98 @@
                 </div>
                 {% endif %}
                 
-                {% if results.predictions.get('cluster') is defined %}
-                <div class="alert alert-info">
-                    <i class="fas fa-users"></i> <strong>Perfil de Usuario:</strong> Grupo {{ results.predictions.cluster }}
-                    <small class="d-block">Basado en patrones de comportamiento similares</small>
+                <!-- Gráficas Desplegables con Details/Summary -->
+                {% if results.horizontal_personal or results.comparison_chart %}
+                <div class="mt-3">
+                    <details class="chart-details">
+                        <summary class="chart-summary">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            <strong>Ver Análisis Visual de mis Resultados</strong>
+                            <i class="fas fa-chevron-down ms-2 summary-icon"></i>
+                        </summary>
+                        
+                        <div class="charts-content mt-4">
+                            <div class="row">
+                                <!-- Grafica Horizontal -->
+                                {% if results.horizontal_personal %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica Horizontal
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.horizontal_personal }}" 
+                                                     class="chart-image" alt="Grafica horizontal Personal"
+                                                     style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Gráfica de Comparación -->
+                                {% if results.comparison_chart %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-chart-bar"></i> 
+                                                Comparación vs Otros Usuarios
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.comparison_chart }}" 
+                                                     class="chart-image" alt="Gráfica de Comparación"
+                                                     style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Comparación:</strong> Azul = Promedio, Naranja = Tu puntuación
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Panel de Interpretación Detallada -->
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-center mb-3">
+                                        <i class="fas fa-info-circle text-primary"></i> 
+                                        Guía de Interpretación
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-chart-bar text-primary"></i> Barras de Riesgo</h6>
+<ul class="small mb-0">
+    <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
+    <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
+    <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
+</ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-chart-bar text-info"></i> Gráfica de Comparación</h6>
+                                            <ul class="small mb-0">
+                                                <li><span class="badge bg-primary">Azul</span> = Promedio de todos los usuarios</li>
+                                                <li><span class="badge bg-warning">Naranja</span> = Tu puntuación actual</li>
+                                                <li>Barras más altas = Mayor nivel del problema</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
                 {% endif %}
-            </div>
-        </div>
-        
-        <!-- Indicadores Detallados -->
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Indicadores Detallados</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Bienestar Psicológico</h6>
-                        <ul class="list-unstyled">
-                            <li>🔄 Cambios de humor: {{ results.prepared_data.get('Mood_Changes', 0) }}/5</li>
-                            <li>👥 Comparación social: {{ results.prepared_data.get('Social_Comparison', 0) }}/5</li>
-                            <li>📱 Nivel de FOMO: {{ results.prepared_data.get('FOMO_Level', 0) }}/5</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Productividad</h6>
-                        <ul class="list-unstyled">
-                            <li>⏰ Procrastinación: {{ results.prepared_data.get('Procrastination', 0) }}/5</li>
-                            <li>🎯 Concentración: {{ results.prepared_data.get('Concentration_Issues', 0) }}/5</li>
-                            <li>📊 Impacto productividad: {{ results.prepared_data.get('Productivity_Impact', 0) }}/5</li>
-                        </ul>
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -167,12 +222,6 @@
             <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
                 <i class="fas fa-home"></i> Inicio
             </a>
-        </div>
-        
-        <div class="alert alert-info mt-4">
-            <i class="fas fa-info-circle"></i>
-            <strong>Nota:</strong> La puntuación de adicción se calcula automáticamente basándose en tus patrones de uso, 
-            frecuencia de publicación, notificaciones, FOMO y otros indicadores.
         </div>
     </div>
 </div>
