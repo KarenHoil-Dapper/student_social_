@@ -1,7 +1,15 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
 import json
 import os
+import io
+import base64
 from datetime import datetime
+import matplotlib
+matplotlib.use('Agg')  # Backend sin GUI para servidor
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
 from updated_survey_system import SocialMediaHealthPredictor  # Actualizado
 
 app = Flask(__name__)
@@ -50,12 +58,18 @@ def submit_survey():
         # Guardar datos
         predictor.save_survey_data(prepared_data, predictions, recommendations)
         
+        # Generar visualizaciones
+        horizontal_personal = generate_personal_horizontal(prepared_data, predictions)
+        comparison_chart = generate_comparison_chart(prepared_data)
+        
         # Preparar resultados para mostrar
         results = {
             'prepared_data': prepared_data,
             'predictions': predictions,
             'recommendations': recommendations,
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'horizontal_personal': horizontal_personal,
+            'comparison_chart': comparison_chart
         }
         
         return render_template('results.html', results=results)
@@ -98,9 +112,317 @@ def stats():
     try:
         # Cargar estadísticas del sistema
         stats_data = get_system_stats()
+        
+        # Generar gráficas de estadísticas
+        global_horizontal = generate_global_horizontal()
+        trends_chart = generate_trends_chart()
+        
+        stats_data['global_horizontal'] = global_horizontal
+        stats_data['trends_chart'] = trends_chart
+        
         return render_template('stats.html', stats=stats_data)
     except Exception as e:
         return render_template('error.html', error=str(e))
+
+def generate_personal_horizontal(prepared_data, predictions):
+    """Genera una grafica de barra horizontal personal"""
+    try:
+        # Configurar estilo
+        plt.style.use('default')
+        
+        # Crear figura
+        fig, ax = plt.subplots(figsize=(8, 5))
+        
+        # Seleccionar métricas principales
+        metrics = {
+            'Uso Diario (h)': prepared_data.get('Avg_Daily_Usage_Hours', 0),
+            'Ansiedad': prepared_data.get('Anxiety_Level', 0),
+            'FOMO': prepared_data.get('FOMO_Level', 0),
+            'Adicción': prepared_data.get('Addicted_Score', 0),
+            'Concentración': prepared_data.get('Concentration_Issues', 0),
+            'Procrastinación': prepared_data.get('Procrastination', 0),
+            'Cambios Humor': prepared_data.get('Mood_Changes', 0),
+            'Comparación Social': prepared_data.get('Social_Comparison', 0)
+        }
+        
+        # Preparar datos para la gráfica
+        labels = list(metrics.keys())
+        values = list(metrics.values())
+        
+        # Definir colores según el nivel de riesgo
+        colors = []
+        for i, (label, value) in enumerate(metrics.items()):
+            if 'Uso Diario' in label:
+                # Para uso diario: verde < 4h, amarillo 4-8h, rojo > 8h
+                if value < 4:
+                    colors.append('#28a745')  # Verde
+                elif value < 8:
+                    colors.append('#ffc107')  # Amarillo
+                else:
+                    colors.append('#dc3545')  # Rojo
+            else:
+                # Para escalas de 1-5 y 1-10
+                max_scale = 10 if label in ['Ansiedad', 'Adicción'] else 5
+                percentage = value / max_scale
+                
+                if percentage < 0.4:
+                    colors.append('#28a745')  # Verde (bajo riesgo)
+                elif percentage < 0.7:
+                    colors.append('#ffc107')  # Amarillo (riesgo medio)
+                else:
+                    colors.append('#dc3545')  # Rojo (alto riesgo)
+        
+        # Crear gráfica de barras horizontales
+        bars = ax.barh(labels, values, color=colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+        
+        # Agregar valores al final de cada barra
+        for i, (bar, value) in enumerate(zip(bars, values)):
+            width = bar.get_width()
+            ax.text(width + 0.1, bar.get_y() + bar.get_height()/2, 
+                   f'{value:.1f}', ha='left', va='center', fontweight='bold', fontsize=10)
+        
+        # Configurar el gráfico
+        ax.set_xlabel('Puntuación', fontsize=12, fontweight='bold')
+        ax.set_title('Tu Perfil de Salud Mental - Barras de Riesgo', fontsize=14, fontweight='bold', pad=20)
+        
+        # Establecer límites del eje X
+        max_value = max(values)
+        ax.set_xlim(0, max_value * 1.2)
+        
+        # Agregar líneas de referencia
+        ax.axvline(x=max_value * 0.4, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        ax.axvline(x=max_value * 0.7, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        
+        # Mejorar el diseño
+        ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_linewidth(0.5)
+        ax.spines['bottom'].set_linewidth(0.5)
+        
+        # Invertir el orden de las etiquetas para que se lea mejor
+        ax.invert_yaxis()
+        
+        plt.tight_layout()
+        
+        # Convertir a base64
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+        
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error generando gráfica de barras horizontales: {e}")
+        return None
+
+def generate_comparison_chart(prepared_data):
+    """Genera gráfica de comparación con promedio"""
+    try:
+        # Cargar datos históricos si existen
+        df = load_historical_data()
+        
+        if df is None or len(df) == 0:
+            return None
+        
+        # Métricas a comparar
+        comparison_metrics = ['Anxiety_Level', 'Addicted_Score', 'FOMO_Level', 'Concentration_Issues']
+        
+        # Calcular promedios
+        averages = {}
+        for metric in comparison_metrics:
+            if metric in df.columns:
+                averages[metric] = df[metric].mean()
+            else:
+                averages[metric] = 0
+        
+        # Datos del usuario actual
+        user_data = {}
+        for metric in comparison_metrics:
+            user_data[metric] = prepared_data.get(metric, 0)
+        
+        # Crear gráfica
+        fig, ax = plt.subplots(figsize=(8, 5))
+        
+        metrics_labels = ['Ansiedad', 'Adicción', 'FOMO', 'Concentración']
+        x = np.arange(len(metrics_labels))
+        width = 0.35
+        
+        avg_values = [averages[metric] for metric in comparison_metrics]
+        user_values = [user_data[metric] for metric in comparison_metrics]
+        
+        bars1 = ax.bar(x - width/2, avg_values, width, label='Promedio General', 
+                      color='lightblue', alpha=0.7)
+        bars2 = ax.bar(x + width/2, user_values, width, label='Tu Puntuación',
+                      color='orange', alpha=0.8)
+        
+        ax.set_xlabel('Métricas')
+        ax.set_ylabel('Puntuación')
+        ax.set_title('Tu Perfil vs Promedio General')
+        ax.set_xticks(x)
+        ax.set_xticklabels(metrics_labels)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Agregar valores en las barras
+        for bars in [bars1, bars2]:
+            for bar in bars:
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                       f'{height:.1f}', ha='center', va='bottom')
+        
+        plt.tight_layout()
+        
+        # Convertir a base64
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+        
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error generando gráfica de comparación: {e}")
+        return None
+
+def generate_global_horizontal():
+    """Genera Grafica horizontal global de todas las respuestas"""
+    try:
+        df = load_historical_data()
+        
+        if df is None or len(df) < 5:  # Necesitamos al menos 5 respuestas
+            return None
+        
+        # Seleccionar columnas numéricas relevantes
+        numeric_cols = ['Age', 'Avg_Daily_Usage_Hours', 'Anxiety_Level', 'FOMO_Level', 
+                       'Addicted_Score', 'Concentration_Issues', 'Procrastination',
+                       'Mood_Changes', 'Social_Comparison']
+        
+        # Filtrar columnas que existen
+        available_cols = [col for col in numeric_cols if col in df.columns]
+        
+        if len(available_cols) < 3:
+            return None
+        
+        # Crear matriz de correlación
+        correlation_matrix = df[available_cols].corr()
+        
+        # Crear horizontal
+        fig, ax = plt.subplots(figsize=(7,6))
+        
+        sns.horizontal(
+            correlation_matrix,
+            annot=True,
+            cmap='RdBu_r',
+            center=0,
+            square=True,
+            linewidths=0.5,
+            cbar_kws={"shrink": .8},
+            ax=ax
+        )
+        
+        plt.title('Correlaciones entre Métricas de Salud Mental', fontsize=16, fontweight='bold')
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
+        
+        # Convertir a base64
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+        
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error generando horizontal global: {e}")
+        return None
+
+def generate_trends_chart():
+    """Genera gráfica de tendencias temporales"""
+    try:
+        df = load_historical_data()
+        
+        if df is None or len(df) < 3:
+            return None
+        
+        # Convertir fecha
+        if 'survey_date' in df.columns:
+            df['survey_date'] = pd.to_datetime(df['survey_date'], errors='coerce')
+            df = df.dropna(subset=['survey_date'])
+            df = df.sort_values('survey_date')
+        else:
+            return None
+        
+        # Crear gráfica de tendencias
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 7))
+        
+        # Gráfica 1: Salud Mental Promedio por día
+        if 'Mental_Health_Score' in df.columns:
+            daily_mental = df.groupby(df['survey_date'].dt.date)['Mental_Health_Score'].mean()
+            ax1.plot(daily_mental.index, daily_mental.values, marker='o', color='green')
+            ax1.set_title('Tendencia: Salud Mental Promedio')
+            ax1.set_ylabel('Puntuación')
+            ax1.grid(True, alpha=0.3)
+            ax1.tick_params(axis='x', rotation=45)
+        
+        # Gráfica 2: Nivel de Adicción
+        if 'Addicted_Score' in df.columns:
+            daily_addiction = df.groupby(df['survey_date'].dt.date)['Addicted_Score'].mean()
+            ax2.plot(daily_addiction.index, daily_addiction.values, marker='s', color='red')
+            ax2.set_title('Tendencia: Nivel de Adicción')
+            ax2.set_ylabel('Puntuación')
+            ax2.grid(True, alpha=0.3)
+            ax2.tick_params(axis='x', rotation=45)
+        
+        # Gráfica 3: Uso Diario Promedio
+        if 'Avg_Daily_Usage_Hours' in df.columns:
+            daily_usage = df.groupby(df['survey_date'].dt.date)['Avg_Daily_Usage_Hours'].mean()
+            ax3.plot(daily_usage.index, daily_usage.values, marker='^', color='blue')
+            ax3.set_title('Tendencia: Uso Diario (Horas)')
+            ax3.set_ylabel('Horas')
+            ax3.grid(True, alpha=0.3)
+            ax3.tick_params(axis='x', rotation=45)
+        
+        # Gráfica 4: Ansiedad Promedio
+        if 'Anxiety_Level' in df.columns:
+            daily_anxiety = df.groupby(df['survey_date'].dt.date)['Anxiety_Level'].mean()
+            ax4.plot(daily_anxiety.index, daily_anxiety.values, marker='d', color='orange')
+            ax4.set_title('Tendencia: Nivel de Ansiedad')
+            ax4.set_ylabel('Puntuación')
+            ax4.grid(True, alpha=0.3)
+            ax4.tick_params(axis='x', rotation=45)
+        
+        plt.suptitle('Tendencias Temporales de Métricas', fontsize=16, fontweight='bold')
+        plt.tight_layout()
+        
+        # Convertir a base64
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+        
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error generando gráfica de tendencias: {e}")
+        return None
+
+def load_historical_data():
+    """Carga datos históricos"""
+    try:
+        if os.path.exists(predictor.data_file):
+            df = pd.read_excel(predictor.data_file)
+            return df
+        return None
+    except Exception as e:
+        print(f"Error cargando datos históricos: {e}")
+        return None
 
 def get_system_stats():
     """Obtiene estadísticas del sistema"""
@@ -152,7 +474,7 @@ def create_templates():
     if not os.path.exists(templates_dir):
         os.makedirs(templates_dir)
     
-    # Template base
+    # Template base (mismo que antes)
     base_template = '''<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -166,6 +488,8 @@ def create_templates():
         .card-hover:hover { transform: translateY(-5px); transition: all 0.3s; }
         .result-card { border-left: 4px solid #007bff; }
         .recommendation { border-left: 3px solid #28a745; background-color: #f8f9fa; }
+        .chart-container { max-width: 100%; overflow-x: auto; }
+        .chart-image { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
@@ -197,7 +521,340 @@ def create_templates():
 </body>
 </html>'''
     
-    # Template index
+    # Template resultados actualizado con gráficas
+    results_template = '''{% extends "base.html" %}
+
+{% block title %}Resultados - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-chart-pie"></i>
+            Tus Resultados con Análisis Visual
+        </h2>
+        
+        <!-- Resumen -->
+        <div class="card result-card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user"></i> Resumen Personal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Edad:</strong> 
+                        {{ results.prepared_data.get('Age', 'N/A') }} años
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Uso diario:</strong> 
+                        {{ "%.1f"|format(results.prepared_data.get('Avg_Daily_Usage_Hours', 0)) }} horas
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Horas de sueño:</strong> 
+                        {{ "%.1f"|format(results.prepared_data.get('Sleep_Hours_Per_Night', 0)) }} horas
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Ansiedad:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Anxiety_Level', 0)) }}/10
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Adicción (calculada):</strong> 
+                        <span class="badge 
+                        {% if results.prepared_data.get('Addicted_Score', 0) >= 8 %}bg-danger
+                        {% elif results.prepared_data.get('Addicted_Score', 0) >= 6 %}bg-warning
+                        {% else %}bg-success{% endif %}">
+                        {{ "%.1f"|format(results.prepared_data.get('Addicted_Score', 0)) }}/10
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>FOMO:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('FOMO_Level', 0)) }}/5
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Concentración:</strong> 
+                        {{ "%.0f"|format(results.prepared_data.get('Concentration_Issues', 0)) }}/5
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Predicciones -->
+        <div class="card result-card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-brain"></i> Análisis IA</h5>
+            </div>
+            <div class="card-body">
+                {% if results.predictions.get('mental_health_score') %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Puntuación de Salud Mental</h6>
+                        <div class="progress">
+                            {% set score = results.predictions.mental_health_score %}
+                            <div class="progress-bar 
+                                {% if score >= 7 %}bg-success
+                                {% elif score >= 5 %}bg-warning
+                                {% else %}bg-danger{% endif %}" 
+                                style="width: {{ (score/10)*100 }}%">
+                                {{ "%.1f"|format(score) }}/10
+                            </div>
+                        </div>
+                        {% if score >= 8 %}
+                        <small class="text-success">Excelente salud mental</small>
+                        {% elif score >= 6 %}
+                        <small class="text-warning">Buena salud mental</small>
+                        {% elif score >= 4 %}
+                        <small class="text-warning">Regular - considera mejoras</small>
+                        {% else %}
+                        <small class="text-danger">Preocupante - busca ayuda</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Impacto Académico</h6>
+                        {% if results.predictions.get('affects_academic_performance') == 1 %}
+                        <span class="badge bg-warning fs-6">SÍ afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
+                        {% else %}
+                        <span class="badge bg-success fs-6">NO afecta</span>
+                        <small class="d-block text-muted">
+                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Gráficas Desplegables con Details/Summary -->
+                {% if results.horizontal_personal or results.comparison_chart %}
+                <div class="mt-3">
+                    <details class="chart-details">
+                        <summary class="chart-summary">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            <strong>Ver Análisis Visual de mis Resultados</strong>
+                            <i class="fas fa-chevron-down ms-2 summary-icon"></i>
+                        </summary>
+                        
+                        <div class="charts-content mt-4">
+                            <div class="row">
+                                <!-- Grafica Horizontal -->
+                                {% if results.horizontal_personal %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica Horizontal
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.horizontal_personal }}" 
+                                                     class="chart-image" alt="Grafica horizontal Personal"
+                                                     style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Gráfica de Comparación -->
+                                {% if results.comparison_chart %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-chart-bar"></i> 
+                                                Comparación vs Otros Usuarios
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.comparison_chart }}" 
+                                                     class="chart-image" alt="Gráfica de Comparación"
+                                                     style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Comparación:</strong> Azul = Promedio, Naranja = Tu puntuación
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Panel de Interpretación Detallada -->
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-center mb-3">
+                                        <i class="fas fa-info-circle text-primary"></i> 
+                                        Guía de Interpretación
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-chart-bar text-primary"></i> Barras de Riesgo</h6>
+<ul class="small mb-0">
+    <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
+    <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
+    <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
+</ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-chart-bar text-info"></i> Gráfica de Comparación</h6>
+                                            <ul class="small mb-0">
+                                                <li><span class="badge bg-primary">Azul</span> = Promedio de todos los usuarios</li>
+                                                <li><span class="badge bg-warning">Naranja</span> = Tu puntuación actual</li>
+                                                <li>Barras más altas = Mayor nivel del problema</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recomendaciones -->
+        {% if results.recommendations %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones Personalizadas</h5>
+            </div>
+            <div class="card-body">
+                {% for recommendation in results.recommendations %}
+                <div class="recommendation p-3 mb-2 rounded border-start border-warning border-3">
+                    {{ recommendation }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="text-center">
+            <a href="{{ url_for('survey') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-redo"></i> Nueva Evaluación
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-home"></i> Inicio
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}'''
+    
+    # Template estadísticas actualizado con gráficas
+    stats_template = '''{% extends "base.html" %}
+
+{% block title %}Estadísticas - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-chart-bar"></i>
+            Estadísticas del Sistema con Análisis Visual
+        </h2>
+        
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                        <h3>{{ stats.total_surveys }}</h3>
+                        <p class="text-muted">Total Encuestas</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-heart fa-2x text-success mb-2"></i>
+                        <h3>{{ "%.1f"|format(stats.avg_mental_health_score) }}</h3>
+                        <p class="text-muted">Salud Mental Promedio</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-graduation-cap fa-2x text-warning mb-2"></i>
+                        <h3>{{ "%.1f"|format(stats.academic_impact_percentage) }}%</h3>
+                        <p class="text-muted">Impacto Académico</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-calendar fa-2x text-info mb-2"></i>
+                        <h3>{{ stats.recent_surveys }}</h3>
+                        <p class="text-muted">Último Mes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grafica horizontal Global -->
+        {% if stats.global_horizontal %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-fire"></i> Grafica horizontal Global - Correlaciones</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ stats.global_horizontal }}" 
+                         class="chart-image" alt="Grafica horizontal Global">
+                </div>
+                <p class="mt-3 text-muted">
+                    Correlaciones entre diferentes métricas de salud mental de todos los usuarios.
+                    Los colores azules indican correlación positiva, los rojos correlación negativa.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Gráficas de Tendencias -->
+        {% if stats.trends_chart %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Tendencias Temporales</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ stats.trends_chart }}" 
+                         class="chart-image" alt="Gráficas de Tendencias">
+                </div>
+                <p class="mt-3 text-muted">
+                    Evolución temporal de las métricas principales del sistema.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if not stats.global_horizontal and not stats.trends_chart %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle"></i>
+            <strong>Nota:</strong> Se necesitan más datos para generar visualizaciones. 
+            Las gráficas aparecerán cuando haya suficientes encuestas completadas.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}'''
+    
+    # Template index (mismo que antes)
     index_template = '''{% extends "base.html" %}
 
 {% block content %}
@@ -258,10 +915,11 @@ def create_templates():
             </div>
         </div>
     </div>
+    
 </div>
 {% endblock %}'''
     
-    # Template encuesta
+    # Template survey (mismo que antes)
     survey_template = '''{% extends "base.html" %}
 
 {% block title %}Encuesta - {{ super() }}{% endblock %}
@@ -390,281 +1048,94 @@ document.querySelectorAll('select').forEach(select => {
 </script>
 
 <style>
-.form-select-lg, .form-control-lg {
+<style>
+/* Estilos para Details/Summary */
+.chart-details {
+    width: 100%;
+}
+
+.chart-summary {
     font-size: 1.1rem;
-    padding: 0.75rem 1rem;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    list-style: none;
 }
 
-.card {
-    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
-    border: none;
+.chart-summary:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    border-color: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.1);
 }
 
-.card-header {
-    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+.chart-summary::-webkit-details-marker {
+    display: none;
 }
 
-.btn-success {
-    background: linear-gradient(45deg, #28a745, #20c997);
-    border: none;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+.chart-summary::marker {
+    display: none;
 }
 
-.btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+.summary-icon {
+    transition: transform 0.3s ease;
 }
 
-.is-invalid {
-    border-color: #dc3545 !important;
-    animation: shake 0.5s;
+.chart-details[open] .summary-icon {
+    transform: rotate(180deg);
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+.chart-details[open] .chart-summary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+}
+
+.charts-content {
+    animation: slideDown 0.4s ease-out;
+    border-left: 3px solid #007bff;
+    padding-left: 15px;
+    margin-left: 10px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mejoras para las gráficas */
+.chart-image {
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+
+.chart-image:hover {
+    transform: scale(1.02);
+}
+
+.card.shadow-sm {
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+    transition: box-shadow 0.2s ease;
+}
+
+.card.shadow-sm:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
 </style>
-{% endblock %}'''
-    
-    # Template resultados
-    results_template = '''{% extends "base.html" %}
-
-{% block title %}Resultados - {{ super() }}{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-lg-10 mx-auto">
-        <h2 class="text-center mb-4">
-            <i class="fas fa-chart-pie"></i>
-            Tus Resultados
-        </h2>
-        
-        <!-- Resumen -->
-        <div class="card result-card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-user"></i> Resumen Personal</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <strong>Edad:</strong> 
-                        {{ results.prepared_data.get('Age', 'N/A') }} años
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Uso diario:</strong> 
-                        {{ "%.1f"|format(results.prepared_data.get('Avg_Daily_Usage_Hours', 0)) }} horas
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Horas de sueño:</strong> 
-                        {{ "%.1f"|format(results.prepared_data.get('Sleep_Hours_Per_Night', 0)) }} horas
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Ansiedad:</strong> 
-                        {{ "%.0f"|format(results.prepared_data.get('Anxiety_Level', 0)) }}/10
-                    </div>
-                </div>
-                <hr>
-                <div class="row">
-                    <div class="col-md-3">
-                        <strong>Adicción (calculada):</strong> 
-                        <span class="badge 
-                        {% if results.prepared_data.get('Addicted_Score', 0) >= 8 %}bg-danger
-                        {% elif results.prepared_data.get('Addicted_Score', 0) >= 6 %}bg-warning
-                        {% else %}bg-success{% endif %}">
-                        {{ "%.1f"|format(results.prepared_data.get('Addicted_Score', 0)) }}/10
-                        </span>
-                    </div>
-                    <div class="col-md-3">
-                        <strong>FOMO:</strong> 
-                        {{ "%.0f"|format(results.prepared_data.get('FOMO_Level', 0)) }}/5
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Concentración:</strong> 
-                        {{ "%.0f"|format(results.prepared_data.get('Concentration_Issues', 0)) }}/5
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Actividad física:</strong> 
-                        {{ "%.0f"|format(results.prepared_data.get('Physical_Activity_Hours', 0)) }}h/sem
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Predicciones -->
-        <div class="card result-card mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-brain"></i> Análisis IA</h5>
-            </div>
-            <div class="card-body">
-                {% if results.predictions.get('mental_health_score') %}
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <h6>Puntuación de Salud Mental</h6>
-                        <div class="progress">
-                            {% set score = results.predictions.mental_health_score %}
-                            <div class="progress-bar 
-                                {% if score >= 7 %}bg-success
-                                {% elif score >= 5 %}bg-warning
-                                {% else %}bg-danger{% endif %}" 
-                                style="width: {{ (score/10)*100 }}%">
-                                {{ "%.1f"|format(score) }}/10
-                            </div>
-                        </div>
-                        {% if score >= 8 %}
-                        <small class="text-success">Excelente salud mental</small>
-                        {% elif score >= 6 %}
-                        <small class="text-warning">Buena salud mental</small>
-                        {% elif score >= 4 %}
-                        <small class="text-warning">Regular - considera mejoras</small>
-                        {% else %}
-                        <small class="text-danger">Preocupante - busca ayuda</small>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Impacto Académico</h6>
-                        {% if results.predictions.get('affects_academic_performance') == 1 %}
-                        <span class="badge bg-warning fs-6">SÍ afecta</span>
-                        <small class="d-block text-muted">
-                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
-                        </small>
-                        {% else %}
-                        <span class="badge bg-success fs-6">NO afecta</span>
-                        <small class="d-block text-muted">
-                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
-                        </small>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if results.predictions.get('cluster') is defined %}
-                <div class="alert alert-info">
-                    <i class="fas fa-users"></i> <strong>Perfil de Usuario:</strong> Grupo {{ results.predictions.cluster }}
-                    <small class="d-block">Basado en patrones de comportamiento similares</small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Indicadores Detallados -->
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Indicadores Detallados</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Bienestar Psicológico</h6>
-                        <ul class="list-unstyled">
-                            <li>🔄 Cambios de humor: {{ results.prepared_data.get('Mood_Changes', 0) }}/5</li>
-                            <li>👥 Comparación social: {{ results.prepared_data.get('Social_Comparison', 0) }}/5</li>
-                            <li>📱 Nivel de FOMO: {{ results.prepared_data.get('FOMO_Level', 0) }}/5</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Productividad</h6>
-                        <ul class="list-unstyled">
-                            <li>⏰ Procrastinación: {{ results.prepared_data.get('Procrastination', 0) }}/5</li>
-                            <li>🎯 Concentración: {{ results.prepared_data.get('Concentration_Issues', 0) }}/5</li>
-                            <li>📊 Impacto productividad: {{ results.prepared_data.get('Productivity_Impact', 0) }}/5</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Recomendaciones -->
-        {% if results.recommendations %}
-        <div class="card mb-4">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recomendaciones Personalizadas</h5>
-            </div>
-            <div class="card-body">
-                {% for recommendation in results.recommendations %}
-                <div class="recommendation p-3 mb-2 rounded border-start border-warning border-3">
-                    {{ recommendation }}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        <div class="text-center">
-            <a href="{{ url_for('survey') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-redo"></i> Nueva Evaluación
-            </a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
-                <i class="fas fa-home"></i> Inicio
-            </a>
-        </div>
-        
-        <div class="alert alert-info mt-4">
-            <i class="fas fa-info-circle"></i>
-            <strong>Nota:</strong> La puntuación de adicción se calcula automáticamente basándose en tus patrones de uso, 
-            frecuencia de publicación, notificaciones, FOMO y otros indicadores.
-        </div>
-    </div>
-</div>
-{% endblock %}'''
-    
-    # Template estadísticas
-    stats_template = '''{% extends "base.html" %}
-
-{% block title %}Estadísticas - {{ super() }}{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="text-center mb-4">
-            <i class="fas fa-chart-bar"></i>
-            Estadísticas del Sistema
-        </h2>
-        
-        <div class="row">
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <i class="fas fa-users fa-2x text-primary mb-2"></i>
-                        <h3>{{ stats.total_surveys }}</h3>
-                        <p class="text-muted">Total Encuestas</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <i class="fas fa-heart fa-2x text-success mb-2"></i>
-                        <h3>{{ "%.1f"|format(stats.avg_mental_health_score) }}</h3>
-                        <p class="text-muted">Salud Mental Promedio</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <i class="fas fa-graduation-cap fa-2x text-warning mb-2"></i>
-                        <h3>{{ "%.1f"|format(stats.academic_impact_percentage) }}%</h3>
-                        <p class="text-muted">Impacto Académico</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <i class="fas fa-calendar fa-2x text-info mb-2"></i>
-                        <h3>{{ stats.recent_surveys }}</h3>
-                        <p class="text-muted">Último Mes</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}'''
     
     # Template error

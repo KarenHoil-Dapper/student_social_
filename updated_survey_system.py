@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 import json
 import warnings
+from supabase_conn import supabase
 warnings.filterwarnings('ignore')
 
 class SocialMediaHealthPredictor:
@@ -331,7 +332,6 @@ class SocialMediaHealthPredictor:
         # Estimar características no preguntadas pero necesarias para el modelo
         new_record['FOMO_Level'] = min(5.0, max(1.0, (social_comparison + anxiety) / 2))
         new_record['Productivity_Impact'] = min(5.0, max(1.0, (concentration + procrastination) / 2))
-        new_record['Physical_Activity_Hours'] = max(0.0, 7 - usage_hours)  # Estimación inversa
         new_record['Face_to_Face_Preference'] = max(1.0, min(5.0, 6 - social_comparison))  # Estimación inversa
         new_record['Online_vs_Offline_Friends'] = 1 if social_comparison >= 4 else 0
         
@@ -375,13 +375,11 @@ class SocialMediaHealthPredictor:
         main_platform = responses.get('Main_Social_Platform', 'Instagram')
         if main_platform and main_platform in platforms:
             new_record[f'Most_Used_Platform_{main_platform}'] = 1
-        else:
-            new_record['Most_Used_Platform_Instagram'] = 1  # Default
-        
+
         # Estado de relación (estimado como soltero por defecto)
-        new_record['Relationship_Status_Single'] = 1
-        new_record['Relationship_Status_In Relationship'] = 0
-        new_record['Relationship_Status_Complicated'] = 0
+        new_record['Relationship_Status_Single'] = 1 if responses.get('Relationship_Status', 'Single') == 'Single' else 0
+        new_record['Relationship_Status_In Relationship'] = 1 if responses.get('Relationship_Status', 'Single') == 'In Relationship' else 0
+        new_record['Relationship_Status_Complicated'] = 1 if responses.get('Relationship_Status', 'Single') == 'Complicated' else 0
         
         # País seleccionado (one-hot encoding)
         countries = ['Afghanistan', 'Albania', 'Andorra', 'Argentina', 'Armenia', 'Australia', 
@@ -411,8 +409,6 @@ class SocialMediaHealthPredictor:
         selected_country = responses.get('Country', 'Mexico')
         if selected_country and selected_country != 'Other' and selected_country in countries:
             new_record[f'Country_{selected_country}'] = 1
-        else:
-            new_record['Country_Mexico'] = 1  # Default
         
         # Crear características derivadas adicionales que el modelo podría esperar
         if new_record['Avg_Daily_Usage_Hours'] > 0 and new_record['Sleep_Hours_Per_Night'] > 0:
@@ -639,11 +635,6 @@ class SocialMediaHealthPredictor:
         if procrastination >= 4:
             recommendations.append("⏰ La procrastinación por redes sociales es alta. Establece horarios específicos para revisarlas.")
         
-        # Basado en actividad física
-        physical_activity = prepared_data.get('Physical_Activity_Hours', 3)
-        if physical_activity < 2:
-            recommendations.append("🏃‍♂️ Considera aumentar tu actividad física. El ejercicio mejora el bienestar mental.")
-        
         # Basado en conflictos
         conflicts = prepared_data.get('Conflicts_Over_Social_Media', 0)
         if conflicts >= 3:
@@ -662,74 +653,99 @@ class SocialMediaHealthPredictor:
         return recommendations
     
     def save_survey_data(self, prepared_data, predictions, recommendations):
-        """Guarda los datos de la encuesta en el archivo Excel"""
+        """Prepara y guarda todos los campos requeridos en Supabase según la estructura completa"""
         try:
-            # Agregar predicciones a los datos preparados
-            final_data = prepared_data.copy()
-            
-            if 'mental_health_score' in predictions:
-                final_data['Mental_Health_Score'] = predictions['mental_health_score']
-            if 'affects_academic_performance' in predictions:
-                final_data['Affects_Academic_Performance'] = predictions['affects_academic_performance']
-            
-            # Cargar datos existentes
-            if os.path.exists(self.data_file):
-                existing_df = pd.read_excel(self.data_file)
-                
-                # Asegurar que el nuevo registro tenga todas las columnas
-                for col in existing_df.columns:
-                    if col not in final_data:
-                        final_data[col] = 0  # Valor por defecto
-                
-                # Crear DataFrame con el nuevo registro
-                new_row_df = pd.DataFrame([final_data])
-                
-                # Reordenar columnas para que coincidan
-                new_row_df = new_row_df.reindex(columns=existing_df.columns, fill_value=0)
-                
-                # Concatenar con datos existentes
-                updated_df = pd.concat([existing_df, new_row_df], ignore_index=True)
-            else:
-                updated_df = pd.DataFrame([final_data])
-            
-            # Guardar archivo actualizado
-            updated_df.to_excel(self.data_file, index=False)
-            print(f"✅ Datos guardados en {self.data_file}")
-            
-            # Guardar también un log detallado
-            log_data = {
-                'timestamp': datetime.now().isoformat(),
-                'prepared_data': {k: v for k, v in prepared_data.items() if v is not None},
-                'predictions': predictions,
-                'recommendations': recommendations
+            supabase_data = {
+                # Datos básicos
+                "age": int(prepared_data.get('Age') or 0),
+                "gender": int(prepared_data.get('Gender') or 0),
+                "avg_daily_usage_hours": float(prepared_data.get('Avg_Daily_Usage_Hours') or 0),
+                "affects_academic_performance": int(prepared_data.get('Affects_Academic_Performance') or 0),
+                "sleep_hours_per_night": float(prepared_data.get('Sleep_Hours_Per_Night') or 0),
+                "mental_health_score": float(predictions.get('mental_health_score') or 0),
+                "conflicts_over_social_media": int(prepared_data.get('Conflicts_Over_Social_Media') or 0),
+                "addicted_score": float(prepared_data.get('Addicted_Score') or 0),
             }
 
-            
-            
-            log_file = f"survey_log_{datetime.now().strftime('%Y%m')}.json"
-            
-            # Cargar log existente o crear nuevo
-            if os.path.exists(log_file):
-                with open(log_file, 'r', encoding='utf-8') as f:
-                    existing_log = json.load(f)
-                existing_log.append(log_data)
+            # Nivel académico
+            academic_levels = {
+                "academic_level_graduate": 0,
+                "academic_level_high_school": 0,
+                "academic_level_undergraduate": 0
+            }
+            level = prepared_data.get('Academic_Level')
+            if level == 4:
+                academic_levels["academic_level_graduate"] = 1
+            elif level == 1:
+                academic_levels["academic_level_high_school"] = 1
+            elif level == 3:
+                academic_levels["academic_level_undergraduate"] = 1
+            supabase_data.update(academic_levels)
+
+            # Países
+            country_fields = [
+    "afghanistan", "albania", "andorra", "argentina", "armenia", "australia", "austria", "azerbaijan",
+    "bahamas", "bahrain", "bangladesh", "belarus", "belgium", "bhutan", "bolivia", "bosnia", "brazil",
+    "bulgaria", "canada", "chile", "china", "colombia", "costa_rica", "croatia", "cyprus",
+    "czech_republic", "denmark", "ecuador", "egypt", "estonia", "finland", "france", "georgia",
+    "germany", "ghana", "greece", "hong_kong", "hungary", "iceland", "india", "indonesia", "iraq",
+    "ireland", "israel", "italy", "jamaica", "japan", "jordan", "kazakhstan", "kenya", "kosovo", 
+    "kuwait", "kyrgyzstan", "latvia", "lebanon", "liechtenstein", "lithuania", "luxembourg", 
+    "malaysia", "maldives", "malta", "mexico", "moldova", "monaco", "montenegro", "morocco",
+    "nepal", "netherlands", "new_zealand", "nigeria", "north_macedonia", "norway", "oman", 
+    "pakistan", "panama", "paraguay", "peru", "philippines", "poland", "portugal", "qatar",
+    "romania", "russia", "san_marino", "serbia", "singapore", "slovakia", "slovenia", 
+    "south_africa", "south_korea", "spain", "sri_lanka", "sweden", "switzerland", "syria",
+    "taiwan", "tajikistan", "thailand", "trinidad", "turkey", "uae", "uk", "usa", "ukraine", 
+    "uruguay", "uzbekistan", "vatican_city", "venezuela", "vietnam", "yemen"
+]
+            country_values = {f"country_{c}": 0 for c in country_fields}
+            user_country = (prepared_data.get("Country") or "mexico").strip().replace(" ", "_").lower()
+            selected_key = f"country_{user_country}"
+            if selected_key in country_values:
+                country_values[selected_key] = 1
+            supabase_data.update(country_values)
+
+            # Plataformas sociales
+            platforms = [
+                "facebook", "instagram", "kakaotalk", "line", "linkedin", "snapchat", "tiktok", 
+                "twitter", "vkontakte", "wechat", "whatsapp", "youtube"
+            ]
+            platform_values = {f"most_used_platform_{p}": 0 for p in platforms}
+            user_platform = (prepared_data.get("Main_Social_Platform") or "instagram").strip().lower()
+            selected_platform_key = f"most_used_platform_{user_platform}"
+            if selected_platform_key in platform_values:
+                platform_values[selected_platform_key] = 1
+            supabase_data.update(platform_values)
+
+            # Estado de relación
+            relationship_status = (prepared_data.get("Relationship_Status") or "Single").strip().lower()
+            rel_fields = {
+                "relationship_status_complicated": 1 if relationship_status == "complicated" else 0,
+                "relationship_status_in_relationship": 1 if relationship_status == "in_relationship" else 0,
+                "relationship_status_single": 1 if relationship_status == "single" else 0,
+            }
+            supabase_data.update(rel_fields)
+
+            # Mostrar para depuración
+            print("📄 JSON completo para Supabase:")
+            print(json.dumps(supabase_data, indent=2, ensure_ascii=False))
+
+            # Enviar a Supabase
+            response = supabase.table("survey_results").insert(supabase_data).execute()
+
+            if hasattr(response, "error") and response.error:
+                print(f"❌ Error al guardar en Supabase: {response.error}")
             else:
-                existing_log = [log_data]
-            
-            # Guardar log actualizado
-            with open(log_file, 'w', encoding='utf-8') as f:
-                json.dump(existing_log, f, indent=2, ensure_ascii=False)
-            
-            return True
-            
+                print("✅ Datos guardados correctamente en Supabase")
+
         except Exception as e:
             print(f"❌ Error guardando datos: {e}")
             import traceback
             traceback.print_exc()
             return False
-        
-        
-    
+
+
     def display_results(self, prepared_data, predictions, recommendations):
         """Muestra los resultados al usuario de forma amigable"""
         print("\n" + "="*60)
@@ -755,7 +771,6 @@ class SocialMediaHealthPredictor:
         print(f"\n🔧 PATRONES DE USO:")
         print(f"   📝 Frecuencia de publicación: {prepared_data.get('Posting_Frequency', 'N/A')}/5")
         print(f"   🔔 Frecuencia de notificaciones: {prepared_data.get('Notification_Frequency', 'N/A')}/5")
-        print(f"   🏃‍♂️ Actividad física semanal: {prepared_data.get('Physical_Activity_Hours', 'N/A')} horas")
         print(f"   ⏰ Procrastinación: {prepared_data.get('Procrastination', 'N/A')}/5")
         
         # Predicciones
