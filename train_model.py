@@ -31,7 +31,7 @@ def load_and_preprocess_data(file_path):
     
     # Columnas principales requeridas (actualizadas según tu dataset)
     required_cols = ['Avg_Daily_Usage_Hours', 'Sleep_Hours_Per_Night', 'Conflicts_Over_Social_Media']
-    target_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
+    target_cols = ['mental_health_score', 'Affects_Academic_Performance']
     
     # Verificar que las columnas requeridas existan
     missing_cols = [col for col in required_cols + target_cols if col not in df.columns]
@@ -126,8 +126,8 @@ def load_and_preprocess_data(file_path):
         extended_features.append('productivity_impact_index')
     
     # 5. Interacciones importantes
-    if 'Addicted_Score' in df_clean.columns and 'Avg_Daily_Usage_Hours' in df_clean.columns:
-        df_clean['addiction_usage_interaction'] = df_clean['Addicted_Score'] * df_clean['Avg_Daily_Usage_Hours']
+    if 'addicted_score' in df_clean.columns and 'Avg_Daily_Usage_Hours' in df_clean.columns:
+        df_clean['addiction_usage_interaction'] = df_clean['addicted_score'] * df_clean['Avg_Daily_Usage_Hours']
         extended_features.append('addiction_usage_interaction')
     
     # Filtrar características finales que realmente existen
@@ -451,7 +451,7 @@ def main():
             return
         
         # Verificar datos objetivo
-        target_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
+        target_cols = ['mental_health_score', 'Affects_Academic_Performance']
         available_targets = [col for col in target_cols if col in df.columns]
         
         if len(available_targets) == 0:
@@ -487,12 +487,12 @@ def main():
         reg_results = {}
         best_reg_model = ("None", None, None)
         
-        if 'Mental_Health_Score' in df.columns:
+        if 'mental_health_score' in df.columns:
             print("\n" + "="*50)
             print("2 ENTRENANDO MODELOS DE REGRESIÓN")
             print("="*50)
             
-            y_reg = df['Mental_Health_Score'].copy()
+            y_reg = df['mental_health_score'].copy()
             
             # Limpiar datos para regresión
             valid_indices = ~y_reg.isnull()
@@ -521,7 +521,7 @@ def main():
             else:
                 print(" Insuficientes datos válidos para regresión")
         else:
-            print(" Saltando regresión - No se encontró 'Mental_Health_Score'")
+            print(" Saltando regresión - No se encontró 'mental_health_score'")
         
         # 3. CLASIFICACIÓN AVANZADA
         clf_trained = False

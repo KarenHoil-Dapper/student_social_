@@ -118,8 +118,8 @@ class AutoRetrainSystem:
             scores = []
             
             # Evaluar regresión si existe
-            if 'Mental_Health_Score' in df_recent.columns and len(df_recent['Mental_Health_Score'].dropna()) > 5:
-                y_reg = df_recent['Mental_Health_Score'].fillna(df_recent['Mental_Health_Score'].mean())
+            if 'mental_health_score' in df_recent.columns and len(df_recent['mental_health_score'].dropna()) > 5:
+                y_reg = df_recent['mental_health_score'].fillna(df_recent['mental_health_score'].mean())
                 
                 # Cargar modelo de regresión
                 try:

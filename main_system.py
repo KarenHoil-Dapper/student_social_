@@ -90,7 +90,7 @@ class SocialMediaHealthSystem:
             print(f"📊 Archivo contiene: {len(df)} registros y {len(df.columns)} columnas")
             
             # Verificar columnas importantes
-            required_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
+            required_cols = ['mental_health_score', 'Affects_Academic_Performance']
             missing_cols = [col for col in required_cols if col not in df.columns]
             
             if missing_cols:
@@ -251,7 +251,7 @@ class SocialMediaHealthSystem:
                 
                 # Verificar columnas importantes
                 important_cols = [
-                    'Mental_Health_Score', 'Affects_Academic_Performance', 
+                    'mental_health_score', 'affects_academic_performance', 
                     'Avg_Daily_Usage_Hours', 'Sleep_Hours_Per_Night',
                     'Addicted_Score', 'Anxiety_Level'
                 ]
@@ -265,13 +265,13 @@ class SocialMediaHealthSystem:
                     print(f"   📅 Muestras última semana: {recent_count}")
                 
                 # Estadísticas básicas
-                if 'Mental_Health_Score' in df.columns:
-                    avg_mental = df['Mental_Health_Score'].mean()
+                if 'mental_health_score' in df.columns:
+                    avg_mental = df['mental_health_score'].mean()
                     print(f"   🧠 Salud mental promedio: {avg_mental:.2f}/10")
                 
-                if 'Affects_Academic_Performance' in df.columns:
-                    academic_impact = (df['Affects_Academic_Performance'].sum() / len(df)) * 100
-                    print(f"   📚 Impacto académico: {academic_impact:.1f}%")
+                if 'addicted_score' in df.columns:
+                    academic_impact = (df['addicted_score'].sum() / len(df))
+                    print(f"   📱 Adicción promedio: {academic_impact:.1f}/10")
         
         except Exception as e:
             print(f"⚠️ Error obteniendo estadísticas: {e}")
@@ -411,8 +411,8 @@ class SocialMediaHealthSystem:
             
             academic_impacts.append(1 if np.random.random() < impact_prob else 0)
         
-        data['Mental_Health_Score'] = mental_health_scores
-        data['Affects_Academic_Performance'] = academic_impacts
+        data['mental_health_score'] = mental_health_scores
+        data['addicted_score'] = academic_impacts
         
         # Crear DataFrame y guardar
         df = pd.DataFrame(data)
@@ -421,7 +421,7 @@ class SocialMediaHealthSystem:
         print(f"✅ Archivo creado con {n_samples} muestras de ejemplo")
         print(f"📊 Características incluidas: {len(df.columns)}")
         print(f"🧠 Salud mental promedio: {np.mean(mental_health_scores):.2f}/10")
-        print(f"📚 Impacto académico: {np.mean(academic_impacts)*100:.1f}%")
+        print(f"📱 Adicción promedio: {np.mean(academic_impacts):.1f}/10")
     
     def run_quick_test(self):
         """Ejecuta una prueba rápida del sistema"""

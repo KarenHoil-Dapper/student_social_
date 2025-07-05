@@ -39,10 +39,10 @@
                     <div class="col-md-3">
                         <strong>Adicción (calculada):</strong> 
                         <span class="badge 
-                        {% if results.prepared_data.get('Addicted_Score', 0) >= 8 %}bg-danger
-                        {% elif results.prepared_data.get('Addicted_Score', 0) >= 6 %}bg-warning
+                        {% if results.prepared_data.get('addicted_score', 0) >= 8 %}bg-danger
+                        {% elif results.prepared_data.get('addicted_score', 0) >= 6 %}bg-warning
                         {% else %}bg-success{% endif %}">
-                        {{ "%.1f"|format(results.prepared_data.get('Addicted_Score', 0)) }}/10
+                        {{ "%.1f"|format(results.prepared_data.get('addicted_score', 0)) }}/10
                         </span>
                     </div>
                     <div class="col-md-3">
@@ -92,16 +92,16 @@
                         {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <h6>Impacto Académico</h6>
-                        {% if results.predictions.get('affects_academic_performance') == 1 %}
+                        <h6>Adicción promedio</h6>
+                        {% if results.predictions.get('addicted_score') == 1 %}
                         <span class="badge bg-warning fs-6">SÍ afecta</span>
                         <small class="d-block text-muted">
-                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                            {{ "%.1f"|format(results.predictions.get('addicted_score', 0)*10) }}% probabilidad
                         </small>
                         {% else %}
                         <span class="badge bg-success fs-6">NO afecta</span>
                         <small class="d-block text-muted">
-                            {{ "%.1f"|format(results.predictions.get('academic_impact_probability', 0)*100) }}% probabilidad
+                            {{ "%.1f"|format(results.predictions.get('addicted_score', 0)*10) }}% probabilidad
                         </small>
                         {% endif %}
                     </div>

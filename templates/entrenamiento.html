@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>🧠 Entrenamiento de Salud Mental</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 20px;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .result {
+      margin-top: 20px;
+      background-color: #ecf0f1;
+      padding: 15px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .filename {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🧠 Sistema de Entrenamiento de Salud Mental</h1>
+
+  <div class="section">
+    <form method="post" action="/upload" enctype="multipart/form-data">
+      <label for="excel_file">1. Subir archivo Excel:</label><br><br>
+      <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+      <button type="submit">Subir</button>
+    </form>
+    {% if file_loaded %}
+      <p class="filename">📄 Archivo cargado: {{ file_loaded }}</p>
+    {% endif %}
+  </div>
+
+  <div class="section">
+
+    <form method="get" action="/train">
+      <button>2. Entrenar Modelos</button>
+    </form>
+
+    <form method="get" action="/analyze">
+      <button>3. Analizar Datos</button>
+    </form>
+
+    <form method="get" action="/status">
+      <button>4. Ver Estado del Sistema</button>
+    </form>
+  </div>
+
+  {% if result %}
+    <div class="result">
+      {{ result|safe }}
+    </div>
+  {% endif %}
+
+</body>
+</html>

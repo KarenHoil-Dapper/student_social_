@@ -21,7 +21,7 @@ def test_data_loading(file_path):
             print(f"  {i:2}. {col:<30} | Tipo: {dtype:<10} | Nulls: {null_count}")
         
         # Verificar columnas objetivo
-        target_cols = ['Mental_Health_Score', 'Affects_Academic_Performance']
+        target_cols = ['mental_health_score', 'Affects_Academic_Performance']
         print(f"\n🎯 COLUMNAS OBJETIVO:")
         for col in target_cols:
             if col in df.columns:
@@ -89,14 +89,14 @@ def create_sample_data(file_path):
         'Conflicts_Over_Social_Media': np.random.randint(0, 11, n_samples),
         'Social_Media_Platforms_Used': np.random.randint(1, 8, n_samples),
         'Time_Spent_Per_Platform': np.random.exponential(1, n_samples).round(1),
-        'Mental_Health_Score': np.random.normal(6, 2, n_samples).round(1),
+        'mental_health_score': np.random.normal(6, 2, n_samples).round(1),
         'Affects_Academic_Performance': np.random.choice([0, 1], n_samples, p=[0.6, 0.4])
     }
     
     # Ajustar rangos
     data['Avg_Daily_Usage_Hours'] = np.clip(data['Avg_Daily_Usage_Hours'], 0.5, 12)
     data['Sleep_Hours_Per_Night'] = np.clip(data['Sleep_Hours_Per_Night'], 4, 12)
-    data['Mental_Health_Score'] = np.clip(data['Mental_Health_Score'], 1, 10)
+    data['mental_health_score'] = np.clip(data['mental_health_score'], 1, 10)
     
     # Crear correlaciones realistas
     for i in range(n_samples):
@@ -106,7 +106,7 @@ def create_sample_data(file_path):
         
         # Más conflictos pueden afectar la salud mental
         if data['Conflicts_Over_Social_Media'][i] > 7:
-            data['Mental_Health_Score'][i] = max(1, data['Mental_Health_Score'][i] - np.random.uniform(0, 3))
+            data['mental_health_score'][i] = max(1, data['mental_health_score'][i] - np.random.uniform(0, 3))
     
     df = pd.DataFrame(data)
     
