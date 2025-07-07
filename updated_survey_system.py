@@ -665,8 +665,30 @@ class SocialMediaHealthPredictor:
                 return False
             else:
                 print("✅ Datos guardados correctamente en Supabase")
-                return True
+            # Guardar localmente en CSV
+            try:
+                local_data = prepared_data.copy()
+                local_data.update({
+                    "Mental_Health_Score": predictions.get("mental_health_score"),
+                    "Affects_Academic_Performance": predictions.get("affects_academic_performance"),
+                    "Cluster": predictions.get("cluster"),
+                })
+                
+                df_local = pd.DataFrame([local_data])
 
+                # Si el archivo ya existe, agregar como nueva fila
+                csv_file = "local_survey_data.csv"
+                if os.path.exists(csv_file):
+                    df_existing = pd.read_csv(csv_file)
+                    df_local = pd.concat([df_existing, df_local], ignore_index=True)
+
+                df_local.to_csv(csv_file, index=False)
+                print(f"📝 Datos también guardados localmente en {csv_file}")
+            except Exception as e:
+                print(f"⚠️ Error al guardar localmente en CSV: {e}")
+
+                return True
+            
         except Exception as e:
             print(f"❌ Error guardando datos: {e}")
             import traceback
