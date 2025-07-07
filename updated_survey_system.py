@@ -74,8 +74,7 @@ class SocialMediaHealthPredictor:
                 record = row.to_dict()
                 
                 # Calcular addicted_score si no existe
-                if 'addicted_score' not in record or pd.isna(record['addicted_score']):
-                    record = self.calculate_addiction_score(record)
+                record = self.calculate_addiction_score(record)
                 
                 # Hacer predicciones
                 predictions = self.make_predictions(record)
@@ -277,8 +276,10 @@ class SocialMediaHealthPredictor:
                 combined = {
                     **record,
                     **predictions,
+                    'Mental_Health_Score': predictions.get('mental_health_score', record.get('mental_health_score')),
+                    'Addicted_Score': record.get('addicted_score'),
                     'recommendations': "; ".join(recommendations)
-                }
+               }
                 
                 output_data.append(combined)
             
