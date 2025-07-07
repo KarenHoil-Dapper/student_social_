@@ -213,5 +213,74 @@ document.querySelectorAll('select').forEach(select => {
 .card.shadow-sm:hover {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
+
+.bg-gradient-purple {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.chart-image-heatmap {
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chart-image-heatmap:hover {
+    transform: scale(1.01);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.card.shadow-lg {
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease;
+}
+
+.card.shadow-lg:hover {
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2) !important;
+    transform: translateY(-2px);
+}
+
+/* Animación de entrada para el mapa de calor */
+.chart-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.bg-light.rounded {
+    border-left: 4px solid #667eea;
+    transition: border-left 0.3s ease;
+}
+
+.bg-light.rounded:hover {
+    border-left: 6px solid #667eea;
+}
+
+/* Estilos para badges mejorados */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.badge.bg-danger {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+}
+
+.badge.bg-primary {
+    background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+}
+
+.badge.bg-light {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+    border: 1px solid #dee2e6;
+}
 </style>
 {% endblock %}
