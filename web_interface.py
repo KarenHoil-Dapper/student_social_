@@ -712,12 +712,12 @@ def run_server():
     # Crear templates si no existen
     create_templates()
     
-    print("🚀 Servidor ejecutándose en: http://localhost:5000")
-    print("📊 Estadísticas en: http://localhost:5000/stats")
-    print("📝 Encuesta en: http://localhost:5000/survey")
+    print("🚀 Servidor ejecutándose en: http://localhost:5002")
+    print("📊 Estadísticas en: http://localhost:5002/stats")
+    print("📝 Encuesta en: http://localhost:5002/survey")
     print("\n⚠️ Presiona Ctrl+C para detener el servidor")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5002)
 
 if __name__ == '__main__':
     run_server()
