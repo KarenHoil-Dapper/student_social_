@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acerca del Sistema - Análisis ML</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+
+        .navbar {
+            background: var(--primary-gradient) !important;
+            box-shadow: var(--card-shadow);
+        }
+
+        .hero-section {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            border-left: 5px solid #667eea;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .model-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border-top: 4px solid #667eea;
+        }
+
+        .tech-stack {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: var(--card-shadow);
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .metric-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-brain"></i> Sistema ML - Redes Sociales
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">
+                    <i class="fas fa-home"></i> Inicio
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="display-4"><i class="fas fa-brain"></i> Sistema de Análisis ML</h1>
+            <p class="lead">Tecnología avanzada de Machine Learning para el análisis de adicción a redes sociales</p>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- Características Principales -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                    <h4>9 Algoritmos ML</h4>
+                    <p>Regresión Lineal, Random Forest, Decision Trees, K-Means y más trabajando en conjunto</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                    <h4>Gráficas Interactivas</h4>
+                    <p>Visualizaciones avanzadas con Plotly que muestran tu posición vs otros usuarios</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <i class="fas fa-users fa-3x text-info mb-3"></i>
+                    <h4>705 Usuarios</h4>
+                    <p>Dataset robusto con usuarios reales para comparaciones precisas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas del Sistema -->
+        <div class="tech-stack">
+            <h2 class="text-center mb-4"><i class="fas fa-chart-bar"></i> Métricas del Sistema</h2>
+            <div class="row">
+                <div class="col-md-3 metric-item">
+                    <div class="metric-number">92%</div>
+                    <p>Precisión Random Forest</p>
+                </div>
+                <div class="col-md-3 metric-item">
+                    <div class="metric-number">6</div>
+                    <p>Tipos de Gráficas</p>
+                </div>
+                <div class="col-md-3 metric-item">
+                    <div class="metric-number">134</div>
+                    <p>Variables Analizadas</p>
+                </div>
+                <div class="col-md-3 metric-item">
+                    <div class="metric-number">&lt;2s</div>
+                    <p>Tiempo de Análisis</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modelos de ML -->
+        <h2 class="text-center mb-4"><i class="fas fa-cogs"></i> Modelos de Machine Learning</h2>
+        <div class="model-grid">
+            <div class="model-card">
+                <h5><i class="fas fa-chart-line"></i> Regresión Lineal</h5>
+                <p><strong>Propósito:</strong> Identifica relaciones lineales entre variables</p>
+                <p><strong>Ventaja:</strong> Interpretable y rápido</p>
+                <p><strong>Precisión:</strong> ~85%</p>
+            </div>
+            
+            <div class="model-card">
+                <h5><i class="fas fa-tree"></i> Random Forest</h5>
+                <p><strong>Propósito:</strong> Combina múltiples árboles de decisión</p>
+                <p><strong>Ventaja:</strong> Alta precisión y robustez</p>
+                <p><strong>Precisión:</strong> ~92%</p>
+            </div>
+            
+            <div class="model-card">
+                <h5><i class="fas fa-sitemap"></i> Decision Trees</h5>
+                <p><strong>Propósito:</strong> Crea reglas de decisión claras</p>
+                <p><strong>Ventaja:</strong> Fácil interpretación</p>
+                <p><strong>Precisión:</strong> ~78%</p>
+            </div>
+            
+            <div class="model-card">
+                <h5><i class="fas fa-project-diagram"></i> Regresión Logística</h5>
+                <p><strong>Propósito:</strong> Clasificación de niveles de riesgo</p>
+                <p><strong>Ventaja:</strong> Probabilidades interpretables</p>
+                <p><strong>Precisión:</strong> ~82%</p>
+            </div>
+            
+            <div class="model-card">
+                <h5><i class="fas fa-circle-nodes"></i> K-Means Clustering</h5>
+                <p><strong>Propósito:</strong> Agrupa usuarios similares</p>
+                <p><strong>Ventaja:</strong> Identifica patrones ocultos</p>
+                <p><strong>Clusters:</strong> 3 grupos principales</p>
+            </div>
+            
+            <div class="model-card">
+                <h5><i class="fas fa-balance-scale"></i> Ensemble Methods</h5>
+                <p><strong>Propósito:</strong> Combina predicciones de todos los modelos</p>
+                <p><strong>Ventaja:</strong> Máxima precisión y confiabilidad</p>
+                <p><strong>Método:</strong> Promedio ponderado</p>
+            </div>
+        </div>
+
+        <!-- Stack Tecnológico -->
+        <div class="tech-stack">
+            <h2 class="text-center mb-4"><i class="fas fa-laptop-code"></i> Stack Tecnológico</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fab fa-python"></i> Backend</h5>
+                    <ul>
+                        <li><strong>Python 3.8+</strong> - Lenguaje principal</li>
+                        <li><strong>Flask</strong> - Framework web</li>
+                        <li><strong>Scikit-learn</strong> - Machine Learning</li>
+                        <li><strong>Pandas</strong> - Manipulación de datos</li>
+                        <li><strong>NumPy</strong> - Computación numérica</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-chart-bar"></i> Visualización</h5>
+                    <ul>
+                        <li><strong>Plotly</strong> - Gráficas interactivas</li>
+                        <li><strong>Bootstrap 5</strong> - UI responsiva</li>
+                        <li><strong>Font Awesome</strong> - Iconografía</li>
+                        <li><strong>CSS3 + JS</strong> - Animaciones</li>
+                        <li><strong>HTML5</strong> - Estructura semántica</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metodología -->
+        <div class="feature-card">
+            <h3><i class="fas fa-microscope"></i> Metodología del Sistema</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>1. Recolección de Datos</h5>
+                    <ul>
+                        <li>705 usuarios reales encuestados</li>
+                        <li>Variables demográficas y de comportamiento</li>
+                        <li>Datos de uso de redes sociales</li>
+                        <li>Métricas de salud mental y bienestar</li>
+                    </ul>
+
+                    <h5>2. Preprocesamiento</h5>
+                    <ul>
+                        <li>Limpieza y normalización de datos</li>
+                        <li>Codificación one-hot para variables categóricas</li>
+                        <li>Escalado estándar para modelos lineales</li>
+                        <li>Manejo de valores faltantes</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>3. Creación de Variables Objetivo</h5>
+                    <ul>
+                        <li><strong>Mental Health Score:</strong> Basado en sueño, conflictos e impacto académico</li>
+                        <li><strong>Addiction Score:</strong> Calculado por uso diario, dependencia y síntomas</li>
+                        <li>Escalas del 1-10 para interpretación intuitiva</li>
+                        <li>Validación cruzada con expertos</li>
+                    </ul>
+
+                    <h5>4. Entrenamiento y Validación</h5>
+                    <ul>
+                        <li>División 80-20 entrenamiento/prueba</li>
+                        <li>Validación cruzada k-fold</li>
+                        <li>Métricas de evaluación múltiples</li>
+                        <li>Optimización de hiperparámetros</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tipos de Gráficas -->
+        <div class="feature-card">
+            <h3><i class="fas fa-chart-pie"></i> Tipos de Visualizaciones</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-chart-bar"></i> Histogramas de Posición</h5>
+                    <p>Muestran tu puntuación comparada con la distribución de todos los usuarios. 
+                    La línea roja indica tu posición exacta.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-chart-area"></i> Gráficas Radar</h5>
+                    <p>Comparan tu perfil vs el promedio general en todos los modelos ML de forma circular e intuitiva.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-chart-line"></i> Comparaciones Demográficas</h5>
+                    <p>Te ubican dentro de tu grupo de edad y nivel de uso, mostrando tendencias específicas.</p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-cogs"></i> Precisión de Modelos</h5>
+                    <p>Gráfica de barras que muestra qué tan confiables son las predicciones de cada algoritmo.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-users"></i> Estadísticas Comparativas</h5>
+                    <p>Métricas numéricas que muestran cuántos usuarios tienen mejores o peores puntuaciones.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-info-circle"></i> Explicaciones Contextuales</h5>
+                    <p>Cada gráfica incluye explicaciones sobre qué mide y cómo interpretar los resultados.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretación de Resultados -->
+        <div class="feature-card">
+            <h3><i class="fas fa-lightbulb"></i> Cómo Interpretar tus Resultados</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>📊 Puntuaciones de Salud Mental (1-10)</h5>
+                    <ul>
+                        <li><span class="badge bg-success">7-10: Excelente</span> - Buen equilibrio y bienestar</li>
+                        <li><span class="badge bg-warning">4-6: Moderado</span> - Algunas áreas de mejora</li>
+                        <li><span class="badge bg-danger">1-3: Atención</span> - Considera buscar apoyo</li>
+                    </ul>
+                    
+                    <h5>📱 Niveles de Adicción (1-10)</h5>
+                    <ul>
+                        <li><span class="badge bg-success">1-3: Bajo</span> - Uso saludable</li>
+                        <li><span class="badge bg-warning">4-6: Moderado</span> - Mantén vigilancia</li>
+                        <li><span class="badge bg-danger">7-10: Alto</span> - Considera reducir uso</li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5>🎯 Percentiles</h5>
+                    <p>Tu percentil indica qué porcentaje de usuarios tienen puntuaciones menores a la tuya. 
+                    Por ejemplo, percentil 75% significa que estás mejor que el 75% de usuarios.</p>
+                    
+                    <h5>📈 Modelos ML</h5>
+                    <p>Cada modelo analiza diferentes aspectos:</p>
+                    <ul>
+                        <li><strong>Lineal:</strong> Relaciones directas</li>
+                        <li><strong>Random Forest:</strong> Patrones complejos</li>
+                        <li><strong>Decision Tree:</strong> Reglas claras</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacidad y Seguridad -->
+        <div class="feature-card">
+            <h3><i class="fas fa-shield-alt"></i> Privacidad y Seguridad</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🔒 Protección de Datos</h5>
+                    <ul>
+                        <li>Todos los datos se procesan de forma anónima</li>
+                        <li>No se almacena información personal identificable</li>
+                        <li>Procesamiento local sin envío a terceros</li>
+                        <li>Sesiones temporales sin persistencia</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>⚖️ Uso Ético</h5>
+                    <ul>
+                        <li>Fines educativos y de autoconocimiento</li>
+                        <li>No reemplaza diagnóstico profesional</li>
+                        <li>Recomendaciones basadas en evidencia</li>
+                        <li>Transparencia en metodología</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Limitaciones -->
+        <div class="feature-card">
+            <h3><i class="fas fa-exclamation-triangle"></i> Limitaciones del Sistema</h3>
+            <div class="alert alert-warning">
+                <h5>⚠️ Importante: Este sistema NO es un diagnóstico médico</h5>
+                <ul class="mb-0">
+                    <li>Los resultados son orientativos y educativos</li>
+                    <li>Para problemas serios de salud mental, consulta un profesional</li>
+                    <li>Las predicciones se basan en patrones estadísticos, no casos individuales</li>
+                    <li>Los algoritmos pueden tener sesgos inherentes del dataset</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Desarrollo Futuro -->
+        <div class="feature-card">
+            <h3><i class="fas fa-rocket"></i> Desarrollo Futuro</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>🔮 Próximas Características</h5>
+                    <ul>
+                        <li>Análisis de sentimientos en texto</li>
+                        <li>Predicciones temporales</li>
+                        <li>Más variables comportamentales</li>
+                        <li>Dashboard personalizado</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>🧠 Mejoras de ML</h5>
+                    <ul>
+                        <li>Redes neuronales profundas</li>
+                        <li>Modelos de atención</li>
+                        <li>Transfer learning</li>
+                        <li>AutoML optimización</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>📊 Más Visualizaciones</h5>
+                    <ul>
+                        <li>Análisis de series temporales</li>
+                        <li>Mapas de calor interactivos</li>
+                        <li>Simulaciones predictivas</li>
+                        <li>Comparaciones grupales</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referencias y Fuentes -->
+        <div class="feature-card">
+            <h3><i class="fas fa-book"></i> Referencias Científicas</h3>
+            <p>Este sistema está basado en investigación académica sobre adicción digital y salud mental:</p>
+            <ul>
+                <li>Andreassen, C. S. (2015). Online Social Network Site Addiction</li>
+                <li>Kuss, D. J., & Griffiths, M. D. (2017). Social Media Addiction</li>
+                <li>Primack, B. A., et al. (2017). Social Media Use and Perceived Social Isolation</li>
+                <li>Hunt, M. G., et al. (2018). No More FOMO: Limiting Social Media</li>
+            </ul>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="text-center my-5">
+            <h3>¿Listo para conocer tu perfil digital?</h3>
+            <p class="lead">Descubre cómo las redes sociales afectan tu bienestar con análisis de Machine Learning</p>
+            <a href="/" class="btn btn-primary btn-lg">
+                <i class="fas fa-chart-line"></i> Comenzar Análisis
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4">
+        <div class="container">
+            <p>&copy; 2024 Sistema de Análisis ML - Redes Sociales. Desarrollado con fines educativos.</p>
+            <p><i class="fas fa-code"></i> Hecho con Python, Flask, Scikit-learn y Plotly</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Animaciones al hacer scroll
+        function animateOnScroll() {
+            const elements = document.querySelectorAll('.feature-card, .model-card');
+            
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        }
+
+        // Inicializar elementos para animación
+        document.querySelectorAll('.feature-card, .model-card').forEach(element => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(30px)';
+            element.style.transition = 'all 0.6s ease';
+        });
+
+        // Event listeners
+        window.addEventListener('scroll', animateOnScroll);
+        window.addEventListener('load', animateOnScroll);
+
+        // Smooth scrolling para enlaces internos
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

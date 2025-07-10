@@ -1,63 +1,371 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Adicción a Redes Sociales</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #4a5568;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .form-section h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            padding: 12px 15px;
+            font-size: 1rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        .results-container {
+            display: none;
+            margin-top: 30px;
+        }
+        .score-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .recommendations {
+            background: #f0fff4;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border-left: 5px solid #48bb78;
+        }
+        .recommendation-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .explanation-card {
+            background: #fff5f5;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #f56565;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <div class="header">
+                <h1><i class="fas fa-brain"></i> Análisis de Salud Mental y Redes Sociales</h1>
+                <p>Sistema de Machine Learning para evaluar tu relación con las redes sociales</p>
+            </div>
 
-{% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto text-center">
-        <div class="bg-gradient text-white rounded p-5 mb-5">
-            <h1 class="display-4 mb-3">
-                <i class="fas fa-brain"></i>
-                Evaluación de Salud Mental
-            </h1>
-            <p class="lead">
-                Sistema inteligente para evaluar el impacto de las redes sociales 
-                en tu salud mental y rendimiento académico
-            </p>
-            <a href="{{ url_for('survey') }}" class="btn btn-light btn-lg">
-                <i class="fas fa-clipboard-list"></i> Iniciar Evaluación
-            </a>
-        </div>
-    </div>
-</div>
+            <form id="analysisForm">
+                <div class="form-section">
+                    <h3><i class="fas fa-user"></i> Información Personal</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edad" class="form-label">Edad</label>
+                            <input type="number" class="form-control" id="edad" name="edad" required min="13" max="80">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="genero" class="form-label">Género</label>
+                            <select class="form-select" id="genero" name="genero" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Hombre">Hombre</option>
+                                <option value="Mujer">Mujer</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="card card-hover h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
-                <h5 class="card-title">Análisis Inteligente</h5>
-                <p class="card-text">
-                    Utilizamos algoritmos de machine learning para analizar 
-                    tu relación con las redes sociales
-                </p>
+                <div class="form-section">
+                    <h3><i class="fas fa-mobile-alt"></i> Uso de Redes Sociales</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="uso_diario" class="form-label">Horas de uso diario</label>
+                            <input type="number" class="form-control" id="uso_diario" name="uso_diario" required min="0" max="24">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="conflictos" class="form-label">Conflictos relacionados (0-10)</label>
+                            <input type="number" class="form-control" id="conflictos" name="conflictos" required min="0" max="10">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="plataforma_mas_usada" class="form-label">Plataforma más usada</label>
+                        <select class="form-select" id="plataforma_mas_usada" name="plataforma_mas_usada" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="TikTok">TikTok</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Twitter">Twitter</option>
+                            <option value="YouTube">YouTube</option>
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Snapchat">Snapchat</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-bed"></i> Salud y Bienestar</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="horas_sueno" class="form-label">Horas de sueño por noche</label>
+                            <input type="number" class="form-control" id="horas_sueno" name="horas_sueno" required min="3" max="12">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="afecta_academico" class="form-label">¿Afecta tu rendimiento académico?</label>
+                            <select class="form-select" id="afecta_academico" name="afecta_academico" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Si">Sí</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-graduation-cap"></i> Información Académica y Social</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nivel_academico" class="form-label">Nivel académico</label>
+                            <select class="form-select" id="nivel_academico" name="nivel_academico" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Bachillerato">Bachillerato</option>
+                                <option value="Licenciatura">Licenciatura</option>
+                                <option value="Posgrado">Posgrado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="estado_relacion" class="form-label">Estado de relación</label>
+                            <select class="form-select" id="estado_relacion" name="estado_relacion" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Soltero">Soltero</option>
+                                <option value="En relación">En relación</option>
+                                <option value="Complicado">Complicado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-chart-line"></i> Analizar Mi Perfil
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analizando tu perfil con múltiples modelos de Machine Learning...</p>
+            </div>
+
+            <div class="results-container" id="results">
+                <!-- Los resultados se insertarán aquí dinámicamente -->
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card card-hover h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-lightbulb fa-3x text-warning mb-3"></i>
-                <h5 class="card-title">Recomendaciones</h5>
-                <p class="card-text">
-                    Recibe consejos personalizados para mejorar tu bienestar 
-                    digital y salud mental
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card card-hover h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
-                <h5 class="card-title">Privacidad</h5>
-                <p class="card-text">
-                    Tus datos son anónimos y se utilizan solo para 
-                    mejorar el sistema de predicción
-                </p>
-            </div>
-        </div>
-    </div>
-    
-</div>
-{% endblock %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('analysisForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // Recopilar datos del formulario
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al procesar la solicitud: ' + error.message);
+            }
+            
+            // Ocultar loading
+            document.getElementById('loading').style.display = 'none';
+        });
+        
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('results');
+            const mental_avg = data.summary.mental_health_avg;
+            const addiction_avg = data.summary.addiction_avg;
+            
+            const getScoreColor = (score) => {
+                if (score >= 7) return '#48bb78';
+                if (score >= 4) return '#ed8936';
+                return '#f56565';
+            };
+            
+            const getScoreLabel = (score) => {
+                if (score >= 7) return 'Bueno';
+                if (score >= 4) return 'Moderado';
+                return 'Preocupante';
+            };
+            
+            resultsContainer.innerHTML = `
+                <h2 class="text-center mb-4"><i class="fas fa-chart-bar"></i> Resultados del Análisis</h2>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="score-card">
+                            <h4><i class="fas fa-brain"></i> Salud Mental</h4>
+                            <div class="score-value" style="color: ${getScoreColor(mental_avg)}">
+                                ${mental_avg}/10
+                            </div>
+                            <p class="mb-0">Nivel: <strong>${getScoreLabel(mental_avg)}</strong></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="score-card">
+                            <h4><i class="fas fa-mobile-alt"></i> Nivel de Adicción</h4>
+                            <div class="score-value" style="color: ${getScoreColor(10 - addiction_avg)}">
+                                ${addiction_avg}/10
+                            </div>
+                            <p class="mb-0">Nivel: <strong>${getScoreLabel(10 - addiction_avg)}</strong></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="explanation-card">
+                    <h4><i class="fas fa-lightbulb"></i> Explicación de Resultados</h4>
+                    <div class="mb-3">
+                        <strong>Salud Mental:</strong> ${data.predictions.explanations.mental_health}
+                    </div>
+                    <div>
+                        <strong>Adicción:</strong> ${data.predictions.explanations.addiction}
+                    </div>
+                </div>
+                
+                <div class="recommendations">
+                    <h4><i class="fas fa-star"></i> Recomendaciones Personalizadas</h4>
+                    ${data.predictions.recommendations.map(rec => 
+                        `<div class="recommendation-item">${rec}</div>`
+                    ).join('')}
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="fas fa-cogs"></i> Detalles de Modelos ML</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <strong>Salud Mental por modelo:</strong><br>
+                                Regresión Lineal: ${data.predictions.mental_health.linear.toFixed(1)}<br>
+                                Random Forest: ${data.predictions.mental_health.random_forest.toFixed(1)}<br>
+                                Decision Tree: ${data.predictions.mental_health.decision_tree.toFixed(1)}
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <strong>Adicción por modelo:</strong><br>
+                                Regresión Lineal: ${data.predictions.addiction.linear.toFixed(1)}<br>
+                                Random Forest: ${data.predictions.addiction.random_forest.toFixed(1)}<br>
+                                Decision Tree: ${data.predictions.addiction.decision_tree.toFixed(1)}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Clasificaciones:</strong> 
+                            Adicción: ${data.predictions.classifications.addiction_level} | 
+                            Salud Mental: ${data.predictions.classifications.mental_health_level} | 
+                            Cluster: ${data.predictions.classifications.cluster}
+                        </small>
+                    </div>
+                </div>
+            `;
+            
+            resultsContainer.style.display = 'block';
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
