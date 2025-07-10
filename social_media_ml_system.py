@@ -458,7 +458,7 @@ if __name__ == "__main__":
     ml_system = SocialMediaMLSystem()
     
     # Cargar datos
-    df = ml_system.load_data('Social_Bueno 1.xlsx')
+    df = ml_system.load_data('Social_Bueno.xlsx')
     
     # Crear scores objetivo
     df = ml_system.create_target_scores()

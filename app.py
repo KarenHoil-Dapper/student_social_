@@ -7,6 +7,7 @@ from social_media_ml_system import SocialMediaMLSystem
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.utils import PlotlyJSONEncoder
+from data_saver_system import save_user_prediction
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Cambiar en producción
@@ -321,6 +322,13 @@ def predict():
         
         # Realizar predicción
         results = ml_system.predict_user_profile(user_data)
+        
+        # 🆕 GUARDAR DATOS EN EXCEL
+        save_result = save_user_prediction(user_data, results)
+        if save_result['success']:
+            print(f"✅ Usuario guardado como Student_ID: {save_result['user_info']['student_id']}")
+        else:
+            print(f"⚠️ Error guardando: {save_result['message']}")
         
         # Calcular estadísticas para comparación
         df = ml_system.df
