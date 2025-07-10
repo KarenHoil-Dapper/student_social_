@@ -175,11 +175,11 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <h6><i class="fas fa-chart-bar text-primary"></i> Barras de Riesgo</h6>
-<ul class="small mb-0">
-    <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
-    <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
-    <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
-</ul>
+                                            <ul class="small mb-0">
+                                                <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
+                                                <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
+                                                <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
+                                            </ul>
                                         </div>
                                         <div class="col-md-6">
                                             <h6><i class="fas fa-chart-bar text-info"></i> Gráfica de Comparación</h6>
@@ -192,10 +192,65 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="charts-content mt-4">
+                            <div class="row">
+                        <!-- Grafica Regresion lineal-->
+                                {% if results.regression_linear %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica de regresion lineal
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.regression_linear }}" 
+                                                        class="chart-image" alt="Grafica regresion lineal"
+                                                        style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Grafica Regresion logistic-->
+                                {% if results.regression_logistic %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica de regresion logistica
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.regression_logistic }}" 
+                                                        class="chart-image" alt="Grafica regresion lineal"
+                                                        style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            </div>
+                            
+
                         </div>
                     </details>
                 </div>
                 {% endif %}
+                
+                
             </div>
         </div>
         

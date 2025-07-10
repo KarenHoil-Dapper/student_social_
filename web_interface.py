@@ -61,7 +61,8 @@ def submit_survey():
         # Generar visualizaciones
         horizontal_personal = generate_personal_horizontal(prepared_data, predictions)
         comparison_chart = generate_comparison_chart(prepared_data)
-        
+        regression_linear = generate_linear_regression_chart(prepared_data)
+        regression_logistic = generate_logistic_regression_chart()
         # Preparar resultados para mostrar
         results = {
             'prepared_data': prepared_data,
@@ -69,7 +70,9 @@ def submit_survey():
             'recommendations': recommendations,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'horizontal_personal': horizontal_personal,
-            'comparison_chart': comparison_chart
+            'comparison_chart': comparison_chart,
+            'regression_linear': regression_linear,
+            'regression_logistic': regression_logistic
         }
         
         return render_template('results.html', results=results)
@@ -123,6 +126,99 @@ def stats():
         return render_template('stats.html', stats=stats_data)
     except Exception as e:
         return render_template('error.html', error=str(e))
+
+def generate_logistic_regression_chart():
+    """Genera una gráfica de regresión logística con datos sintéticos"""
+    try:
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import io
+        import base64
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.datasets import make_classification
+
+        # Crear datos sintéticos de clasificación binaria
+        X, y = make_classification(n_samples=100, n_features=1, n_informative=1,
+                                   n_redundant=0, n_clusters_per_class=1, random_state=42)
+
+        # Entrenar modelo
+        model = LogisticRegression()
+        model.fit(X, y)
+        y_prob = model.predict_proba(X)[:, 1]
+
+        # Crear gráfica
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.scatter(X, y, color='blue', label='Clase real', alpha=0.6)
+        ax.scatter(X, y_prob, color='red', label='Probabilidad estimada', alpha=0.6)
+        ax.set_title('Regresión Logística')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Probabilidad / Clase')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+        # Convertir a imagen base64
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+
+        return image_base64
+
+    except Exception as e:
+        print(f"Error generando gráfica de regresión logística: {e}")
+        return None
+
+
+def generate_linear_regression_chart(prepared_data):
+    """Genera una gráfica de regresión lineal con datos del usuario"""
+    try:
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import io
+        import base64
+        from sklearn.linear_model import LinearRegression
+
+        # Obtener dos variables reales
+        x_val = prepared_data.get('Avg_Daily_Usage_Hours', 0)
+        y_val = prepared_data.get('Anxiety_Level', 0)
+
+        # Crear datos sintéticos alrededor del valor del usuario
+        X = np.linspace(x_val - 2, x_val + 2, 20).reshape(-1, 1)
+        y = y_val + 0.5 * (X.flatten() - x_val) + np.random.randn(20)
+
+        # Entrenar modelo
+        model = LinearRegression()
+        model.fit(X, y)
+        y_pred = model.predict(X)
+
+        # Crear gráfica
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.scatter(X, y, color='blue', label='Simulados', alpha=0.6)
+        ax.plot(X, y_pred, color='red', label='Regresión lineal')
+        ax.scatter([x_val], [y_val], color='green', label='Tus datos', s=80, zorder=5)
+        ax.set_title('Regresión Lineal (Uso diario vs Ansiedad)')
+        ax.set_xlabel('Horas de uso diario')
+        ax.set_ylabel('Nivel de ansiedad')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        # Convertir a base64
+        buffer = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close()
+
+        return image_base64
+
+    except Exception as e:
+        print(f"Error generando gráfica de regresión lineal: {e}")
+        return None
+
 
 def generate_personal_horizontal(prepared_data, predictions):
     """Genera una grafica de barra horizontal personal"""
@@ -699,11 +795,11 @@ def create_templates():
                                     <div class="row">
                                         <div class="col-md-6">
                                             <h6><i class="fas fa-chart-bar text-primary"></i> Barras de Riesgo</h6>
-<ul class="small mb-0">
-    <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
-    <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
-    <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
-</ul>
+                                            <ul class="small mb-0">
+                                                <li><span class="badge bg-success">Verde</span> = Bajo riesgo (saludable)</li>
+                                                <li><span class="badge bg-warning">Amarillo</span> = Riesgo moderado</li>
+                                                <li><span class="badge bg-danger">Rojo</span> = Alto riesgo (requiere atención)</li>
+                                            </ul>
                                         </div>
                                         <div class="col-md-6">
                                             <h6><i class="fas fa-chart-bar text-info"></i> Gráfica de Comparación</h6>
@@ -716,10 +812,65 @@ def create_templates():
                                     </div>
                                 </div>
                             </div>
+                            <div class="charts-content mt-4">
+                            <div class="row">
+                            <!-- Grafica Regresion lineal-->
+                                {% if results.regression_linear %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica de regresion lineal
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.regression_linear }}" 
+                                                        class="chart-image" alt="Grafica regresion lineal"
+                                                        style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Grafica Regresion logistic-->
+                                {% if results.regression_logistic %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-fire"></i> 
+                                                Tu Grafica de regresion logistica
+                                            </h6>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <div class="chart-container">
+                                                <img src="data:image/png;base64,{{ results.regression_logistic }}" 
+                                                        class="chart-image" alt="Grafica regresion lineal"
+                                                        style="max-height: 300px; width: 100%; object-fit: contain;">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <strong>Interpretación:</strong> Verde = Bajo riesgo, Amarillo = Medio, Rojo = Alto riesgo
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            </div>
+                            
+
                         </div>
                     </details>
                 </div>
                 {% endif %}
+                
+                
             </div>
         </div>
         
@@ -1183,12 +1334,12 @@ def run_server():
     # Crear templates si no existen
     create_templates()
     
-    print("🚀 Servidor ejecutándose en: http://localhost:5000")
-    print("📊 Estadísticas en: http://localhost:5000/stats")
-    print("📝 Encuesta en: http://localhost:5000/survey")
+    print("🚀 Servidor ejecutándose en: http://localhost:2")
+    print("📊 Estadísticas en: http://localhost:5002/stats")
+    print("📝 Encuesta en: http://localhost:5002/survey")
     print("\n⚠️ Presiona Ctrl+C para detener el servidor")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5002)
 
 if __name__ == '__main__':
     run_server()
