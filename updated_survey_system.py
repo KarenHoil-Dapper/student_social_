@@ -669,9 +669,9 @@ class SocialMediaHealthPredictor:
             try:
                 local_data = prepared_data.copy()
                 local_data.update({
-                    "Mental_Health_Score": predictions.get("mental_health_score"),
-                    "Affects_Academic_Performance": predictions.get("affects_academic_performance"),
-                    "Cluster": predictions.get("cluster"),
+                    "Mental_Health_Score": predictions.get("Mental_Health_Score"),
+                    "Affects_Academic_Performance": predictions.get("Affects_Academic_Performance"),
+                    "Cluster": predictions.get("Cluster"),
                 })
                 
                 df_local = pd.DataFrame([local_data])

@@ -373,36 +373,61 @@ def generate_comparison_chart(prepared_data):
         if df is None or len(df) == 0:
             return None
         
-        # Métricas a comparar
-        comparison_metrics = ['Anxiety_Level', 'Addicted_Score', 'FOMO_Level', 'Concentration_Issues']
+        # Asegurar que no haya None en las métricas base
+        def safe_float(value):
+            return float(value) if isinstance(value, (int, float)) and value is not None else 0.0
         
-        # Calcular promedios
-        averages = {}
-        for metric in comparison_metrics:
-            if metric in df.columns:
-                averages[metric] = df[metric].mean()
-            else:
-                averages[metric] = 0
+        # Calcular el puntaje de salud mental para el usuario actual
+        mental_health_score_user = (
+            safe_float(prepared_data.get('Anxiety_Level')) +
+            safe_float(prepared_data.get('Mood_Changes')) +
+            safe_float(prepared_data.get('Social_Comparison')) +
+            safe_float(prepared_data.get('FOMO_Level'))
+        ) / 4.0
         
-        # Datos del usuario actual
-        user_data = {}
-        for metric in comparison_metrics:
-            user_data[metric] = prepared_data.get(metric, 0)
+        # Calcular el promedio general de salud mental
+        if all(col in df.columns for col in ['Anxiety_Level', 'Mood_Changes', 'Social_Comparison', 'FOMO_Level']):
+            mental_health_score_avg = (
+                df['Anxiety_Level'].mean() +
+                df['Mood_Changes'].mean() +
+                df['Social_Comparison'].mean() +
+                df['FOMO_Level'].mean()
+            ) / 4.0
+        else:
+            mental_health_score_avg = 0.0
+        
+        # Métricas a comparar (incluye salud mental ahora)
+        comparison_metrics = ['Mental_Health_Score', 'Anxiety_Level', 'Addicted_Score', 'FOMO_Level', 'Concentration_Issues']
+        metrics_labels = ['Salud Mental', 'Ansiedad', 'Adicción', 'FOMO', 'Concentración']
+        
+        # Construir valores del usuario
+        user_data = {
+            'Mental_Health_Score': mental_health_score_user,
+            'Anxiety_Level': safe_float(prepared_data.get('Anxiety_Level')),
+            'Addicted_Score': safe_float(prepared_data.get('Addicted_Score')),
+            'FOMO_Level': safe_float(prepared_data.get('FOMO_Level')),
+            'Concentration_Issues': safe_float(prepared_data.get('Concentration_Issues'))
+        }
+        
+        # Construir promedios generales
+        averages = {
+            'Mental_Health_Score': mental_health_score_avg,
+            'Anxiety_Level': df['Anxiety_Level'].mean() if 'Anxiety_Level' in df.columns else 0.0,
+            'Addicted_Score': df['Addicted_Score'].mean() if 'Addicted_Score' in df.columns else 0.0,
+            'FOMO_Level': df['FOMO_Level'].mean() if 'FOMO_Level' in df.columns else 0.0,
+            'Concentration_Issues': df['Concentration_Issues'].mean() if 'Concentration_Issues' in df.columns else 0.0,
+        }
         
         # Crear gráfica
-        fig, ax = plt.subplots(figsize=(8, 5))
-        
-        metrics_labels = ['Ansiedad', 'Adicción', 'FOMO', 'Concentración']
+        fig, ax = plt.subplots(figsize=(9, 5))
         x = np.arange(len(metrics_labels))
         width = 0.35
         
         avg_values = [averages[metric] for metric in comparison_metrics]
         user_values = [user_data[metric] for metric in comparison_metrics]
         
-        bars1 = ax.bar(x - width/2, avg_values, width, label='Promedio General', 
-                      color='lightblue', alpha=0.7)
-        bars2 = ax.bar(x + width/2, user_values, width, label='Tu Puntuación',
-                      color='orange', alpha=0.8)
+        bars1 = ax.bar(x - width/2, avg_values, width, label='Promedio General', color='lightblue', alpha=0.7)
+        bars2 = ax.bar(x + width/2, user_values, width, label='Tu Puntuación', color='orange', alpha=0.8)
         
         ax.set_xlabel('Métricas')
         ax.set_ylabel('Puntuación')
@@ -412,16 +437,16 @@ def generate_comparison_chart(prepared_data):
         ax.legend()
         ax.grid(True, alpha=0.3)
         
-        # Agregar valores en las barras
+        # Agregar valores sobre las barras
         for bars in [bars1, bars2]:
             for bar in bars:
                 height = bar.get_height()
                 ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                       f'{height:.1f}', ha='center', va='bottom')
+                        f'{height:.1f}', ha='center', va='bottom')
         
         plt.tight_layout()
         
-        # Convertir a base64
+        # Convertir a imagen base64
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
         buffer.seek(0)
@@ -429,10 +454,12 @@ def generate_comparison_chart(prepared_data):
         plt.close()
         
         return image_base64
-        
+
     except Exception as e:
         print(f"Error generando gráfica de comparación: {e}")
         return None
+
+
 
 def generate_global_horizontal():
     """Genera Grafica horizontal global de todas las respuestas"""
