@@ -102,6 +102,7 @@
             font-weight: 700;
             margin: 10px 0;
             background: var(--primary-gradient);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -143,6 +144,7 @@
 
         .chart-title i {
             background: var(--primary-gradient);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-right: 10px;
@@ -250,6 +252,7 @@
             font-size: 2.5rem;
             font-weight: 700;
             background: var(--primary-gradient);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -647,27 +650,41 @@
         </div>
     </div>
 
+    <!-- JavaScript Data (Generated from Flask) -->
+    <script id="chart-data" type="application/json">
+        {
+            "mentalGraphs": {
+                {% for model_name, graph_json in mental_graphs.items() %}
+                "{{ model_name }}": {{ graph_json|safe }}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            },
+            "addictionGraphs": {
+                {% for model_name, graph_json in addiction_graphs.items() %}
+                "{{ model_name }}": {{ graph_json|safe }}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            },
+            "radarMental": {% if graphs.radar_mental %}{{ graphs.radar_mental|safe }}{% else %}null{% endif %},
+            "radarAddiction": {% if graphs.radar_addiction %}{{ graphs.radar_addiction|safe }}{% else %}null{% endif %},
+            "accuracyChart": {% if graphs.accuracy %}{{ graphs.accuracy|safe }}{% else %}null{% endif %},
+            "demographicAge": {% if graphs.demographic_age %}{{ graphs.demographic_age|safe }}{% else %}null{% endif %},
+            "demographicUsage": {% if graphs.demographic_usage %}{{ graphs.demographic_usage|safe }}{% else %}null{% endif %}
+        }
+    </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Datos de las gráficas (pasados desde Flask)
-        const mentalGraphs = {
-            {% for model_name, graph_json in mental_graphs.items() %}
-            '{{ model_name }}': {{ graph_json|safe }}{% if not loop.last %},{% endif %}
-            {% endfor %}
-        };
+        // Cargar datos de las gráficas desde JSON
+        const chartDataElement = document.getElementById('chart-data');
+        const chartData = JSON.parse(chartDataElement.textContent);
         
-        const addictionGraphs = {
-            {% for model_name, graph_json in addiction_graphs.items() %}
-            '{{ model_name }}': {{ graph_json|safe }}{% if not loop.last %},{% endif %}
-            {% endfor %}
-        };
-        
-        // Verificar si las gráficas existen antes de asignar
-        const radarMental = {% if graphs.radar_mental %}{{ graphs.radar_mental|safe }}{% else %}null{% endif %};
-        const radarAddiction = {% if graphs.radar_addiction %}{{ graphs.radar_addiction|safe }}{% else %}null{% endif %};
-        const accuracyChart = {% if graphs.accuracy %}{{ graphs.accuracy|safe }}{% else %}null{% endif %};
-        const demographicAge = {% if graphs.demographic_age %}{{ graphs.demographic_age|safe }}{% else %}null{% endif %};
-        const demographicUsage = {% if graphs.demographic_usage %}{{ graphs.demographic_usage|safe }}{% else %}null{% endif %};
+        // Asignar datos a variables globales
+        const mentalGraphs = chartData.mentalGraphs;
+        const addictionGraphs = chartData.addictionGraphs;
+        const radarMental = chartData.radarMental;
+        const radarAddiction = chartData.radarAddiction;
+        const accuracyChart = chartData.accuracyChart;
+        const demographicAge = chartData.demographicAge;
+        const demographicUsage = chartData.demographicUsage;
 
         // Función para mostrar gráficas de salud mental
         function showMentalChart(modelName) {
