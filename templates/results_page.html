@@ -146,7 +146,7 @@
             background: var(--primary-gradient);
             background-clip: text;
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-text-fill-color: white;
             margin-right: 10px;
             font-size: 1.5rem;
         }
@@ -254,7 +254,7 @@
             background: var(--primary-gradient);
             background-clip: text;
             -webkit-background-clip: text;
-            -webkit-text-fill-color: white;
+            color: #667eea;
         }
 
         .stat-label {
@@ -423,14 +423,6 @@
                         {% else %}
                             Alto
                         {% endif %}
-                    </div>
-                </div>
-                
-                <div class="score-card percentile">
-                    <div class="score-label">Tu Percentil</div>
-                    <div class="score-value">{{ stats.mental_percentile }}%</div>
-                    <div class="score-status status-good">
-                        Top {{ 100 - stats.mental_percentile|round }}%
                     </div>
                 </div>
             </div>
@@ -641,16 +633,10 @@
             <a href="/" class="btn-custom btn-primary-custom">
                 <i class="fas fa-redo"></i> Hacer Nuevo Análisis
             </a>
-            <button onclick="window.print()" class="btn-custom btn-outline-custom">
-                <i class="fas fa-download"></i> Descargar Resultados
-            </button>
-            <a href="/about" class="btn-custom btn-outline-custom">
-                <i class="fas fa-info-circle"></i> Sobre el Sistema
-            </a>
         </div>
     </div>
 
-    <!-- JavaScript Data (Generated from Flask) -->
+    <!-- JavaScript Data -->
     <script id="chart-data" type="application/json">
         {
             "mentalGraphs": {

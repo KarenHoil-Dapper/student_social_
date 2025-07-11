@@ -90,27 +90,30 @@ def create_user_position_chart(user_score, all_scores, score_type, model_name):
     
     # Personalizar layout
     fig.update_layout(
-        title=f'{score_type} - {model_name}<br>Tu posición vs otros usuarios',
-        xaxis_title=f'Puntuación {score_type} (1-10)',
-        yaxis_title='Número de usuarios',
-        template='plotly_white',
-        height=400,
-        showlegend=True,
-        annotations=[
-            dict(
-                x=user_score,
-                y=max(np.histogram(valid_scores, bins=20)[0]) * 0.8,
-                text=f"🎯 TU AQUÍ<br>{user_score:.1f}/10<br>Percentil: {percentile:.0f}%",
-                showarrow=True,
-                arrowhead=2,
-                arrowcolor="red",
-                bgcolor="rgba(255,255,255,0.9)",
-                bordercolor="red",
-                borderwidth=2,
-                font=dict(size=12)
+    title=f'{score_type} - {model_name}<br>Tu posición vs otros usuarios',
+    xaxis_title=f'Puntuación {score_type} (1-10)',
+    yaxis_title='Número de usuarios',
+    template='plotly_white',
+    height=400,
+    showlegend=True,
+    annotations=[
+        dict(
+            x=user_score + 0.15,
+            y=0.5,  # Mitad vertical
+            xref='x',
+            yref='paper',  # Usa coordenadas relativas del área visible
+            text=f"🎯 TU AQUÍ<br>{user_score:.1f}/10<br>Percentil: {percentile:.0f}%",
+            showarrow=True,
+            arrowhead=2,
+            arrowcolor="red",
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="red",
+            borderwidth=2,
+            font=dict(size=12)
             )
         ]
     )
+
     
     return fig
 
@@ -273,7 +276,7 @@ def create_demographic_comparison(user_data, df):
             mode='lines+markers',
             name='Salud Mental',
             line=dict(color='blue', width=3),
-            marker=dict(size=8),
+            marker=dict(size=10),
             hovertemplate='<b>Grupo:</b> %{x}<br><b>Salud Mental:</b> %{y:.1f}<extra></extra>'
         ))
         fig_usage.add_trace(go.Scatter(
